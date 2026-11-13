@@ -1,8 +1,9 @@
 # VeloGB10 TP8 · DeepSeek 1017
 
-An experimental port of [veloGB10](https://github.com/sf-stav/veloGB10) for
-the [official DeepSeek-V4.1-Flash-1017 checkpoint](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170)
-on eight GB10 systems over RoCE. It includes the native packed model,
+An independent experimental port based on [sf-stav/veloGB10](https://github.com/sf-stav/veloGB10)
+at [commit `438176b`](https://github.com/sf-stav/veloGB10/commit/438176b68436295a0a9bbda11355e10dbf92be01).
+It runs the [official DeepSeek-V4.1-Flash-1017 checkpoint](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170)
+on eight GB10 systems over RoCE and includes the native packed model,
 buffered atomic requests through C16, and separate options for reusing
 temporary GPU buffers and capturing three CUDA kernels during decode.
 
