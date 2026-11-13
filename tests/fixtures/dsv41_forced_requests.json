@@ -1,0 +1,58 @@
+[
+  {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Return exactly this text, with no quotes or explanation: READY_47"
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 512,
+    "chat_template_kwargs": {
+      "thinking": false
+    }
+  },
+  {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Call echo exactly once with the value {\"balance_delta\": 7, \"operation_id\": \"op_47\"}."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 512,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "echo",
+          "description": "Local isolated fixture operation echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "value": {}
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "tool_choice": {
+      "type": "function",
+      "function": {
+        "name": "echo"
+      }
+    },
+    "stream": false
+  }
+]

@@ -1,13 +1,31 @@
-<p align="center">
-  <img src="assets/velogb10_logo.png" alt="veloGB10" width="480">
-</p>
+# VeloGB10 TP8 · DeepSeek 1017
 
-# veloGB10
+An experimental port of [veloGB10](https://github.com/sf-stav/veloGB10) for
+the [official DeepSeek-V4.1-Flash-1017 checkpoint](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170)
+on eight GB10 systems over RoCE. It includes the native packed model,
+buffered atomic requests through C16, and separate options for reusing
+temporary GPU buffers and capturing three CUDA kernels during decode.
 
-**A GB10-specific inference engine for one, two or four GB10-based systems — NVIDIA DGX Spark and
-compatible OEM machines built around the NVIDIA GB10 chipset.**
+| Experiment at 2 GHz CPU and GPU | C8 aggregate tok/s | C16 aggregate tok/s |
+| --- | ---: | ---: |
+| Buffer reuse off → on | 20.57 → 20.49 | 27.09 → 26.91 |
+| Three-kernel CUDA graph off → on, reuse on in both arms | 20.38 → 20.46 | 26.69 → 26.95 |
 
-veloGB10 (`gb10_inference`) is a from-scratch Rust + CUDA inference engine for a hand-selected
+Both comparisons preserved native tokens, the two tested coding fixes, and
+an exactly-once tool update. Buffer reuse showed no speedup. The graphs
+showed a sub-1% median improvement over two repeats per width; neither
+change was promoted. The reuse arm and the graphs-off control had
+post-request RoCE retries, reported separately from the timed work.
+See [results and timing data](docs/tp8-1017-results.md) and [build and checks](docs/tp8-1017-build.md).
+
+The source includes deployment configuration changes that remove the
+original lab addresses. The reported rates are for the original pinned
+test executables. The mainline veloGB10 binaries and upstream performance
+figures below do not apply to this experimental port.
+
+## Upstream veloGB10 overview
+
+veloGB10 (`gb10_inference`) is a GB10-specific Rust + CUDA inference engine for a hand-selected
 set of large language models — currently the Qwen3.5/3.6/3.8 family (including **Qwen3.8-Flash-Next,
 served from EXL3 or NVFP4 packs**) and Tencent Hy3 — with support for hybrid GatedDeltaNet + GQA
 architectures, sparse attention, dense models, and MoE models. Two weight formats are served
@@ -45,6 +63,62 @@ Prebuilt binaries for GB10 systems are on the [**Releases** page](https://github
 inference binary, the required PTX kernels, SHA-256 checksums, and build provenance notes. If you
 run an NVIDIA DGX Spark or a compatible OEM GB10 machine, you can use a release binary without
 compiling anything.
+
+## Experimental eight-rank bring-up
+
+The `tp8-bringup` development branch adds an opt-in TP=8 path for **dense Qwen
+NVFP4/FP8** models using the `qwen3_5` / `qwen3_5_text` architecture and compatible
+eight-way FFN/GDN dimensions. A bounded Qwen3.8-27B NVFP4/FP8 profile now passes
+C2/C4/C8 checks on eight GB10s. Its eight-user 256-token speed wave measured
+**107.96 aggregate native tokens/s**, with outputs matching isolated requests.
+Twelve synthetic coding/tool variants passed both isolated and concurrent runs
+at every concurrency. The profile remains experimental: DeepSeek, EXL3, Naive,
+MoE, speculative decoding, graphs, long-context serving and production soak tests
+need separate ports or qualification. See [the qualification record](TP8_QUALIFICATION.md)
+for exact identities, measurements and limits. Existing TP=2/4 launch defaults
+are retained; the inherited BF16 attention dispatch defect was corrected.
+
+Use seven distinct RoCE peer addresses with `scripts/run_tp_server.sh
+--experimental-tp8`; rank 0 is the head. Verify each host's local RoCE device and
+GID, and select its active device with `--rdma-dev`. The bounded profile's engine
+flags after `--` are:
+
+```text
+--mtp off --spec-source none --no-decode-graphs --tp-fp32-partials
+--kv-cache bf16 --tp-shard-mtp off --tp-gpu-recv on --tp-reduce-fuse off
+--prefix-cache off --max-seq-len 4096 --max-batch 8 --tp-batch-trace
+```
+
+Before a cold eight-rank start, run the head with the same model, peers and cache
+settings plus `--tp-sync-only`. This checks and distributes the model, then exits
+before RDMA bring-up or GPU model loading. Start the normal head and node listeners
+after staging completes. The serving sync visits peers in order; staging large
+weights first avoids an early worker exhausting its connection retries while later
+workers are still receiving files. Keep model caches separate from compiled CUDA
+caches; both belong to the candidate workspace.
+
+The loader validates architecture, dimensions and quantized tensor headers before
+GPU allocation. FFN and GDN weights split eight ways. Attention stays replicated
+when its KV heads cannot split eight ways; the output head is replicated. Three
+serial recursive-doubling exchanges complete each eight-rank reduction, with GPU
+validation of generation-tagged receive tails. Pipelined TP8 and the four-rank
+one-shot optimization remain unavailable.
+
+Transport checks covered one million poisoned exchanges per rank and three-round
+numerical reductions. A later C2 screen exposed an inherited BF16 attention bug:
+two kernel families wrote the same partial buffer. The correction uses one
+producer and identical per-request arithmetic across batch widths. Independent
+GPU math checks reproduced the legacy wrong result on all eight devices and
+verified both corrected kernel variants. Fresh model runs then verified actual
+two/four/eight-row batches, matching capped outputs, executable code and checked
+tool effects. Earlier failed runs are retained separately. These short synthetic
+checks establish a bounded profile, not general model-quality equivalence or
+performance on other models and longer contexts.
+
+The separate DeepSeek 1017 port passes bounded eight-node native execution
+through C16. It has its own [development record](DSV41_1017_PORT.md) and
+[short C8/C16 results](docs/tp8-1017-results.md). The Qwen figures above do
+not predict DeepSeek performance.
 
 ## Update — Qwen3.8-Flash-Next support (veloGB10 v0.7.1)
 

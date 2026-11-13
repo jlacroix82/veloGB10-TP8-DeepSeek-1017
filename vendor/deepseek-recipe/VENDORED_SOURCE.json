@@ -1,0 +1,139 @@
+{
+  "upstream": "https://github.com/deepseek-ai/deepseek-recipe",
+  "revision": "935817c66f5d6e64838f419692545f06787e485f",
+  "included_crates": [
+    "deepseek-recipe",
+    "deepseek-recipe-core",
+    "deepseek-recipe-encoding",
+    "deepseek-recipe-macros"
+  ],
+  "original_file_sha256": {
+    "deepseek-recipe/LICENSE": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+    "deepseek-recipe/Cargo.toml": "795e51382a68b662a78103b70844f0b0f3c67b5118a3afa18aff67abe7dfd9c6",
+    "deepseek-recipe/src/lib.rs": "fe68548dc1a0c3ae7ffe573064b5c9ae31a006eeacc3e77a65529444e22464c7",
+    "deepseek-recipe/src/error_response.rs": "2690c53da70e5d918b6ff5263cc66c2b2ec06487126d2b158f200eeec3e648e8",
+    "deepseek-recipe/src/response.rs": "26a4639a915497a5cbb75e6361c550ba737cd94c69c5b1dc98481ac4bc143309",
+    "deepseek-recipe/src/request/mod.rs": "c2d996aca81b6956b9e997c24fd4239a1191248d4e5399dfa069ee41f19fc2b9",
+    "deepseek-recipe/src/request/options.rs": "0a0c998d3f3dfc93fd6b53ca106e600416bcbb36c4083b0e5f9c773a2e7ba128",
+    "deepseek-recipe/src/stream/processor.rs": "40eb9f349666af775e8649ab340ba32ae76f8c5e251b8a05a38fe854afc35bc4",
+    "deepseek-recipe/src/stream/decoder.rs": "2237f08024225c3afa79042e9fcd1f3fc838d3e433027d4f193f20e5f1f9d084",
+    "deepseek-recipe/src/stream/logprobs.rs": "4e8aef09ab01538bd374719c8afc582a8e663ced6da6d14ea96ce0d26e9c8d8e",
+    "deepseek-recipe/src/stream/mod.rs": "17705c7754675b231b7ff6f03d4d9bc59ba7a8a0005ac3420068247c17b248ec",
+    "deepseek-recipe/src/stream/output_parser.rs": "38aeb5e0cd475c39b2269e71adc037167e713cf98ba551d7210365ceb6eccbc7",
+    "deepseek-recipe/src/stream/inference.rs": "1088a96d606e6090e0aedf08419c587536deb84d4afadf063b753f13436f203d",
+    "deepseek-recipe/src/protocol/reasoning.rs": "bd2ab9a8cdbf82ecd9f77238d571de31f0105f78aa609ed5834de6e13c0f9f0a",
+    "deepseek-recipe/src/protocol/mod.rs": "113faa015c6079ade0e02644cc38aefb0935228aa349fa1bb611e904a80e72ff",
+    "deepseek-recipe/src/protocol/tool_call_id.rs": "b4511e56bbeb08318658a858b7624743bf1d53e707dea164a286d7a49a2c05df",
+    "deepseek-recipe/src/protocol/validation.rs": "2d39eee7110bf6051dc5ebc75a639bedd72e804b2db3b0bbfa8799ee4be095fd",
+    "deepseek-recipe/src/protocol/client_tools.rs": "6ac02a44eb42a2eb2a64d79eed22b9ea39396f868045bbe4636785d75ba7db73",
+    "deepseek-recipe/src/protocol/output_constraint.rs": "3ac2d0bf86e3f099255b3d09e24ba4b2516e7e8c00e338e9a3bc4b13ffcaf4db",
+    "deepseek-recipe/src/protocol/reasoning_content.rs": "0f3a5dda4b05560ac1e22120fd7d6292e7160f6c62e35fd059eb8a67c67bf502",
+    "deepseek-recipe/src/protocol/image.rs": "50e9e678ed5f07d47bd08ef820f99703437a2bd58f6392e4c49f921a27af10d3",
+    "deepseek-recipe/src/protocol/json_schema.rs": "b6a01d0d9a0fec45c9b79445b90f042c95e8c6eec5b8d51ed36307bd2a357451",
+    "deepseek-recipe/src/protocol/openai/mod.rs": "4cb69774240b938b17a030b4ad5c861226c569bae8a454d30bcc2148fe28737b",
+    "deepseek-recipe/src/protocol/anthropic/mod.rs": "7f85176f32feede76d0cf753508e09f79cc42ae03286ddcb36080387d1d433bf",
+    "deepseek-recipe/src/protocol/anthropic/messages/mod.rs": "74ee32089a06ebf2e4b31e3112cfa312605d6949b2a6b8a6dd991d39dba73d3f",
+    "deepseek-recipe/src/protocol/anthropic/messages/request/schema.rs": "699565374ab5d2292f2978eb5014eb4c91532728e4614af5ae869cd96954c4e0",
+    "deepseek-recipe/src/protocol/anthropic/messages/request/convert.rs": "7e3e440804acde6be1b34c293ec4797bc797a1e8f7db80f02aeae65184b24967",
+    "deepseek-recipe/src/protocol/anthropic/messages/request/mod.rs": "9affe9648f7dd09a4d3ab1fafd4730966959d7ee414103963c8686bd8f9adde7",
+    "deepseek-recipe/src/protocol/anthropic/messages/response/schema.rs": "095216a701eca19b11139bf1cc25a3d60c5338f31d1292b75dea8dadafe68e24",
+    "deepseek-recipe/src/protocol/anthropic/messages/response/chunk_generator.rs": "82f5f28088cbdd911e3df92e05be999fc6382d8ca49b9255b4e9daa713b18094",
+    "deepseek-recipe/src/protocol/anthropic/messages/response/mod.rs": "41ebb720bdb1181559cacf39c7a9bafccc557f254ffd59194a72040902cc23a1",
+    "deepseek-recipe/src/protocol/openai/responses/mod.rs": "9d3bef2c5ccdfd0ed5e73ef303bf03f464965126611ab96c91cbe27a31655bc3",
+    "deepseek-recipe/src/protocol/openai/chat_completion/mod.rs": "9d3bef2c5ccdfd0ed5e73ef303bf03f464965126611ab96c91cbe27a31655bc3",
+    "deepseek-recipe/src/protocol/openai/chat_completion/request/schema.rs": "7934daf74887afd067461a8a9f1efdef5f39fee717728a21fba02e470254222f",
+    "deepseek-recipe/src/protocol/openai/chat_completion/request/convert.rs": "2661a956939446d3e8aa3423c56fcef7b3fd892f9470477ba979570744adbaa5",
+    "deepseek-recipe/src/protocol/openai/chat_completion/request/mod.rs": "de644171e7357c35fc2943f09de236e8540d6dc63c17d0caee45162128a8a7a0",
+    "deepseek-recipe/src/protocol/openai/chat_completion/response/schema.rs": "590d034db959facd31c28db13c95201e5bf93ebfa0c8ee8ed0c3390ee992b9df",
+    "deepseek-recipe/src/protocol/openai/chat_completion/response/chunk_generator.rs": "996a5613aa858a30b0527a0f3ef46ae6ca3108ed626655156600e10915627bba",
+    "deepseek-recipe/src/protocol/openai/chat_completion/response/mod.rs": "41ebb720bdb1181559cacf39c7a9bafccc557f254ffd59194a72040902cc23a1",
+    "deepseek-recipe/src/protocol/openai/responses/request/schema.rs": "1999d12454c8dcc19ec7384cf629ecd88720a46661ca9457760fadb19dc419fa",
+    "deepseek-recipe/src/protocol/openai/responses/request/convert.rs": "a6a5834f4fde9ad71a58a89e63f3df208ead50de45b8918b3ceb5f500e4b4bc2",
+    "deepseek-recipe/src/protocol/openai/responses/request/mod.rs": "c0a739d0d91c6645f4e82d62611d0e5b3aab0778fa2f14c74e42d5e4acbacf55",
+    "deepseek-recipe/src/protocol/openai/responses/request/tools.rs": "537ad3cf8fdcaa18403a62fa1b386211624e5cf5b51ca2e3bbbad8ce4331cf1c",
+    "deepseek-recipe/src/protocol/openai/responses/response/schema.rs": "dbbc4b7bd2c1481a9d9dd15a984d68151f64eb352d7752e0b5ab1772a7f4964d",
+    "deepseek-recipe/src/protocol/openai/responses/response/custom_tool_input.rs": "78256e1401ecb38ccfe145d7cb121deb8a443bec575a9ca97c7d11b9868cb62f",
+    "deepseek-recipe/src/protocol/openai/responses/response/chunk_generator.rs": "74b2c09afb6ce53cbb713f051e9a62d278bec82d599a48ece17ea46dd795eb9a",
+    "deepseek-recipe/src/protocol/openai/responses/response/mod.rs": "f65bc7c548154b3601beb6ef3b2ed3f1d1b1db99f57824e7e00677db2195319c",
+    "deepseek-recipe/src/protocol/openai/responses/response/accumulator.rs": "78c6d10ee389f49ca9d3fc9abe7d418183fa6ef56dc3e7c2d0ba603c548f7668",
+    "deepseek-recipe-core/LICENSE": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+    "deepseek-recipe-core/Cargo.toml": "105ee24459fd31a4a3dc3257fa8899c91f64ff592a72a9e3e7b09a8b92fef9b5",
+    "deepseek-recipe-core/src/special_tokens.rs": "e38f095ca3841855234a009ad913c250befb179240d32e5cf22fc1ef140569b3",
+    "deepseek-recipe-core/src/conversation.rs": "6711ffd8de536b52894b3eaf781a78cb027e5e580fee545f47dfbd1b10faeb42",
+    "deepseek-recipe-core/src/lib.rs": "5fb42c69ad2189d485b2880a115d087bb3c89c986a6deeedfe541e11a7f19863",
+    "deepseek-recipe-core/src/prompt.rs": "c63534a96f533d47dc02467ccb540e0fc5cccbf89afc5dabbd275331ddf188d6",
+    "deepseek-recipe-core/src/json.rs": "5f870d05a986009f57fd2452f0eb7800476ca5be5a3da722263ec696a743211c",
+    "deepseek-recipe-core/src/tools.rs": "5bd7bad3fc17ac50cdbee85d16c80ae7b9a46a3478d329cdc99592b572720b29",
+    "deepseek-recipe-core/src/messages.rs": "8800bd2c18c7e49cfe5f3a218129dd8f813621c2e4cc5d0d69cbf93ad0f6e66a",
+    "deepseek-recipe-core/src/multimodal/token_spec.rs": "3b8a106ba2ca78ae027be73e16457ae5dd8bfc2b34aea675e3fde938e6df4c80",
+    "deepseek-recipe-core/src/multimodal/mod.rs": "9de7b7227d6ee10df5eac92b426f25f5c32f0b9bdd01aa326a2270042269776b",
+    "deepseek-recipe-encoding/LICENSE": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+    "deepseek-recipe-encoding/Cargo.toml": "d55c358c393af48a386b681da8a152227c5e6e6562ae6d86466229a148996c47",
+    "deepseek-recipe-encoding/src/tokenizer.rs": "21fefc37c6689cac8357d030f1ccb2c84e37d293950797ec4a6a0bfc208b56de",
+    "deepseek-recipe-encoding/src/lib.rs": "e59026e36cb8b729667ef167debc2d681b0a19e80b5e2227bdfc973f6cc1ad24",
+    "deepseek-recipe-encoding/src/v4/dsv41.rs": "33f7b0e0c3dde66020a4746ffc6c35df8dd30933e653aaf9071c1beb21439a90",
+    "deepseek-recipe-encoding/src/v4/mod.rs": "b48c8b1b725eac84c8d9bf1aadb715c36922e027516974d5b33a315da9fcdd63",
+    "deepseek-recipe-encoding/src/v4/dsv4.rs": "d1e210fb958c9d4c0c3ab18899d7aa2e76c8d8f93e66e4dd1f1fcead5790a7ad",
+    "deepseek-recipe-macros/LICENSE": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+    "deepseek-recipe-macros/Cargo.toml": "aae27f50c3d78d40294035fa5808f6d42eb9a7e23d08025fa2c42368aa5eb03f",
+    "deepseek-recipe-macros/src/lib.rs": "07303834ed83cfcc2270d8c80a710ebe4b7b4f0c2d6b1ea7385b69c7086e49bc",
+    "deepseek-recipe-macros/src/prompt.rs": "24cbb46f14708b507c2160fc93c53138a92e347d8372869d82886859858e027d",
+    "deepseek-recipe-macros/src/untagged.rs": "86d30e8c7eb41bcc574ba2fab729b17e2d543020f3bf5fef6671b2487e7b1a13",
+    "Cargo.toml": "790d9820e34cfb0555aba0d64e753591cffb786ee66c73b6c7d2925972ba0510",
+    "LICENSE": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+    "README.md": "e3ea4bd6b3a3debd8431af23d81935b93858636883dfc651f7ecc3416e099a67"
+  },
+  "local_patches": [
+    "Limit workspace members to the four pure Rust protocol/encoding crates; omit image/OpenCV/server/Python packages.",
+    {
+      "id": "typed-v41-numeric-reasoning-v1",
+      "upstream_revision": "935817c66f5d6e64838f419692545f06787e485f",
+      "purpose": "Validated1..100 typed reasoning scores, exact integer serde, officialV4.1 rendering, explicitV4 rejection and score100 maximum-output default; no DSML tag/parser/special-range changes.",
+      "files": [
+        {
+          "path": "deepseek-recipe-core/src/conversation.rs",
+          "original_sha256": "6711ffd8de536b52894b3eaf781a78cb027e5e580fee545f47dfbd1b10faeb42",
+          "modified_sha256": "9bf928b1e8a260441a739c0d7cc266187037b6fc0fba8353ed1d2709e7abda13"
+        },
+        {
+          "path": "deepseek-recipe-encoding/src/v4/dsv41.rs",
+          "original_sha256": "33f7b0e0c3dde66020a4746ffc6c35df8dd30933e653aaf9071c1beb21439a90",
+          "modified_sha256": "7f4fe893715aa4ddbd857486d5e472dc60236a22960d2675d74031ff0dbacfe0"
+        },
+        {
+          "path": "deepseek-recipe-encoding/src/v4/dsv4.rs",
+          "original_sha256": "d1e210fb958c9d4c0c3ab18899d7aa2e76c8d8f93e66e4dd1f1fcead5790a7ad",
+          "modified_sha256": "ffa0f17522d83f54536da4a434cdf9f87bd8076e8678f822803b749356ff5491"
+        },
+        {
+          "path": "deepseek-recipe/src/request/mod.rs",
+          "original_sha256": "c2d996aca81b6956b9e997c24fd4239a1191248d4e5399dfa069ee41f19fc2b9",
+          "modified_sha256": "b16170d0d44d3e523ac92b9400e1a1fe7de6bdb1a755767c1a520f9d5b8233b5"
+        }
+      ],
+      "canonical_unified_diff_sha256": "0133b74eadc95b0d84eb85b24af024b571c60b68e2741ab724b24491c62676db",
+      "qualification": "CPU tests written; root coordinates compilation/execution. No inference or serving qualification."
+    },
+    {
+      "id": "opt-in-explicit-backend-finish-v1",
+      "upstream_revision": "935817c66f5d6e64838f419692545f06787e485f",
+      "purpose": "Optional strict Finish proof, defaultfalse for upstream compatibility; V4.1 adapter opts in. UnannouncedEOF produces error with consumed native completion count and no normalfinish. Parser-matched userstop retains explicit StopSequence origin.",
+      "files": [
+        {
+          "path": "deepseek-recipe/src/stream/mod.rs",
+          "original_sha256": "17705c7754675b231b7ff6f03d4d9bc59ba7a8a0005ac3420068247c17b248ec",
+          "modified_sha256": "cdaad2d7efc9cc022ea064c8edcfe7bd7f430bb6f98c083465ebc06a63649c3d"
+        },
+        {
+          "path": "deepseek-recipe/src/stream/processor.rs",
+          "original_sha256": "40eb9f349666af775e8649ab340ba32ae76f8c5e251b8a05a38fe854afc35bc4",
+          "modified_sha256": "58320ad87d6d52c6d5433819b884c5c9a904aad2aa896a144a71b7abd78f0ea1"
+        }
+      ],
+      "canonical_unified_diff_sha256": "44387b716e9b053c0ccc62f0dc9efcff79ca58e4506fb5f1abc0ac925bbb8151",
+      "qualification": "CPU cases written for text/toolEOF, defaultcompatibility, explicitStop/Length, partialtoolLength, parserstop/finalflush and adapter streaming/complete propagation; root coordinates execution. No inference/serving qualification."
+    }
+  ],
+  "license": "MIT; original license retained",
+  "source_bytes": 594114
+}

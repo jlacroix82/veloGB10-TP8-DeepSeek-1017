@@ -645,6 +645,26 @@ fn main() {
         for w in &unknown { gb10_inference::reprintln!("[opts] {w}"); }
         if !unknown.is_empty() { gb10_inference::metrics::set_unknown_options(unknown.len() as u64); }
     }
+    // Select this CPU-only mode before any GPU-capable diagnostic or model dispatch.
+    // Informational help/config views keep their usual precedence.
+    if gb10_inference::opts::on(gb10_inference::opt!("dsv41-plan")) {
+        if args.iter().any(|a| matches!(a.as_str(), "--help" | "-h")) {
+            print_help();
+            print!("{}", gb10_inference::opts::help_day());
+        } else if args.iter().any(|a| a == "--help-advanced") {
+            print_help();
+            print!("{}", gb10_inference::opts::help_advanced());
+        } else if args.iter().any(|a| a == "--help-diag") {
+            print!("{}", gb10_inference::opts::help_text(true));
+        } else if args.iter().any(|a| a == "--print-config") {
+            print!("{}", gb10_inference::opts::print_config());
+            print!("{}", gb10_inference::opts::print_resolved());
+        } else if let Err(error) = dsv41_plan_cli(&args) {
+            eprintln!("FATAL: DeepSeek-1017 preflight: {error:#}");
+            std::process::exit(2);
+        }
+        return;
+    }
     // DF2 block-16: resolve the draft block FIRST, before any DFlash2 buffer or round is built.
     // It is a process global read by every sizing/launch site in src/dflash2/, so it must be
     // installed once and never changed; block 8 reproduces today's allocations and launches
@@ -3682,6 +3702,58 @@ fn load_dspark_round_dir(gpu: &mut gb10_inference::gpu::GpuModel, max_c: usize, 
         gpu.dev(), gb10_inference::batch::PREFILL_CHUNK));
     gpu.set_dspark_capture(sink.clone());
     Some((round, sink, prime))
+}
+
+/// Validate 1017 metadata and write an ownership plan without loading model payloads or CUDA.
+fn dsv41_plan_cli(args: &[String]) -> anyhow::Result<()> {
+    use anyhow::{bail, Context};
+    use gb10_inference::dsv41::{config::Dsv41Config, inventory::read_inventory, plan::build_plan};
+    use std::io::Write;
+    if args.iter().any(|a| matches!(a.as_str(), "--server" | "--node" | "--quantize" | "--tripwire-selftest")) {
+        bail!("--dsv41-plan is a metadata-only mode; choose it separately from server/node/quantize/tripwire-selftest");
+    }
+    let directory = parse_arg(args, "--model-dir").context("--dsv41-plan requires --model-dir")?;
+    let directory = std::path::Path::new(&directory);
+    let world = parse_tp_world(args).unwrap_or(8) as usize;
+    let config = Dsv41Config::load_dir(directory)?;
+    let inventory = read_inventory(directory)?;
+    let plan = build_plan(&config, &inventory, world)?;
+    let report = serde_json::json!({
+        "schema": 1,
+        "kind": "deepseek_1017_metadata_ownership_preflight",
+        "serving_supported": false,
+        "inference_gpu_work": false,
+        "inference_transport_initialized": false,
+        "requested_world": world,
+        "expected_model_revision": gb10_inference::dsv41::config::MODEL_REVISION,
+        "checkpoint_payload_identity_verified": false,
+        "capabilities": config.capabilities(),
+        "inventory": {
+            "index_sha256": inventory.index_sha256,
+            "tensor_count": inventory.tensors.len(),
+            "shards": inventory.shards,
+            "total_payload_bytes": inventory.total_payload_bytes,
+            "total_file_bytes": inventory.total_file_bytes,
+            "metadata_bytes_read": inventory.metadata_bytes_read,
+            "logical_payload_bytes_read": inventory.logical_payload_bytes_read,
+            "payload_checksums_verified": inventory.payload_checksums_verified
+        },
+        "ownership_plan": plan,
+        "limit": "Exact stored-weight accounting only. GPU kernels, resident allocations, KV/activation/workspace budgets, model fidelity and serving performance are unqualified."
+    });
+    let encoded = serde_json::to_vec_pretty(&report)?;
+    if let Some(path) = parse_arg(args, "--out") {
+        // Existing evidence is never silently overwritten.
+        let mut file = std::fs::OpenOptions::new().create_new(true).write(true).open(&path)
+            .with_context(|| format!("create new preflight report {path}"))?;
+        file.write_all(&encoded)?;
+        file.write_all(b"\n")?;
+        println!("DeepSeek-1017 metadata plan saved; serving remains unsupported.");
+    } else {
+        std::io::stdout().write_all(&encoded)?;
+        println!();
+    }
+    Ok(())
 }
 
 /// Parse the `--tp [N]` flag — the single authority for the TP rank count on a TP run.
@@ -8759,6 +8831,12 @@ fn run_cluster_node_once(port: u16, udp: u16) {
         let mut stream = stream;
         gb10_inference::cluster::node_report_failure(&mut stream, &format!("head options refused: {e}"));
         eprintln!("node error: {e}"); std::process::exit(1);
+    }
+    if let Err(e) = gb10_inference::tp8::validate_runtime(&tpc) {
+        let mut stream = stream;
+        gb10_inference::cluster::node_report_failure(&mut stream, &format!("TP8 configuration refused: {e:#}"));
+        eprintln!("node error: {e:#}");
+        std::process::exit(1);
     }
     gb10_inference::dprintln!("[node] options from the head: {}", gb10_inference::opts::set_summary());
     // The head's TP config, shipped during the sync — install BEFORE any TP consumer reads a setting,
@@ -15798,6 +15876,43 @@ fn run_server(args: &[String]) {
         eprintln!("error: --model-dir {model_path} does not exist on this box (TP nodes do not need it; the head does)");
         std::process::exit(2);
     }
+    // Refuse unqualified eight-rank postures before discovery, artifact shipment or GPU work.
+    let check_world = parse_tp_world(args).unwrap_or(1);
+    if let Err(e) = gb10_inference::tp8::validate_server_options(
+        check_world,
+        gb10_inference::opts::on(gb10_inference::opt!("experimental-tp8")),
+        &gb10_inference::opt_or_arg(args, "--mtp").unwrap_or_else(|| "auto".into()),
+        resolve_spec_source(args).cli_name(),
+        gb10_inference::opts::on(gb10_inference::opt!("no-decode-graphs")),
+        gb10_inference::opts::on(gb10_inference::opt!("tp-fp32-partials")),
+        &gb10_inference::opt_or_arg(args, "--kv-cache").unwrap_or_default(),
+    ) {
+        eprintln!("experimental TP8 configuration: {e:#}");
+        std::process::exit(2);
+    }
+    if check_world == gb10_inference::tp8::WORLD {
+        if gb10_inference::naive::config::NaiveConfig::is_naive_dir(&model_path)
+            || gb10_inference::exl3_serve::is_exl3_pack(&model_path)
+            || !std::path::Path::new(&model_path).is_dir()
+        {
+            eprintln!("experimental TP8 currently supports only dense Qwen NVFP4 directories; EXL3 and Naive need separate qualification");
+            std::process::exit(2);
+        }
+        let cfg_path = format!("{}/config.json", model_path.trim_end_matches('/'));
+        let raw = std::fs::read(&cfg_path).map_err(anyhow::Error::from)
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).map_err(anyhow::Error::from))
+            .and_then(|raw| gb10_inference::tp8::validate_model_type(&raw));
+        if let Err(e) = raw {
+            eprintln!("experimental TP8 model: {e:#}");
+            std::process::exit(2);
+        }
+        let cfg = gb10_inference::qwen::Config::from_config_json(&cfg_path)
+            .and_then(|cfg| gb10_inference::gpu::validate_tp8_config(&cfg));
+        if let Err(e) = cfg {
+            eprintln!("experimental TP8 model: {e:#}");
+            std::process::exit(2);
+        }
+    }
     // NAIVE S5: a Naive-N0.5 pack serves TP-only (137 GB; no single GB10 holds it): this box is the head
     if gb10_inference::naive::config::NaiveConfig::is_naive_dir(&model_path) {
         match parse_tp_world(args) {
@@ -16033,6 +16148,10 @@ fn run_server(args: &[String]) {
             // Installing before the load is behavior-neutral: the only loader consumer
             // (gpu.rs shard-at-load shard_mixers) ORs tp_config with the very env var
             // TpConfig::from_opts mirrors, so it reads the same value either way.
+            if let Err(e) = gb10_inference::tp8::validate_runtime(&tpc) {
+                eprintln!("experimental TP8 configuration: {e:#}");
+                std::process::exit(2);
+            }
             gb10_inference::tp::set_tp_config(tpc.clone());
             // The session overlaps our pre-load CPU work (config/tokenizer above); the transfer
             // itself is 0 bytes warm. On a cold first sync it serializes ahead of the load —

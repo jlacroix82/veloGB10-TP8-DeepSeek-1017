@@ -262,6 +262,10 @@ fn index_bytes(weight_map: &BTreeMap<String, String>, total: u64) -> Result<Vec<
 /// The plan of rank `rank` of `world` (deal = the EXL3 expert deal; NVFP4 bands are contiguous and ignore it).
 pub fn shard_plan(dir: &Path, fmt: ShardFormat, world: usize, rank: usize, deal: &str) -> Result<RankPlan> {
     anyhow::ensure!(world >= 2 && rank < world, "shard plan: rank {rank} of world {world}");
+    if world == 8 {
+        anyhow::ensure!(fmt == ShardFormat::Nvfp4,
+            "experimental TP8 shard shipping supports the dense Qwen NVFP4 path only");
+    }
     match fmt {
         ShardFormat::Exl3 => plan_exl3(dir, world, rank, deal),
         ShardFormat::Nvfp4 => plan_nvfp4(dir, world, rank),
@@ -346,6 +350,7 @@ fn nvfp4_band(name: &str, cfg: &crate::qwen::Config, world: usize) -> bool {
 
 fn plan_nvfp4(dir: &Path, world: usize, rank: usize) -> Result<RankPlan> {
     let cfg = crate::qwen::Config::from_config_json(&dir.join("config.json").to_string_lossy())?;
+    if world == 8 { crate::gpu::validate_tp8_config(&cfg)?; }
     let (_wmap, files) = index_files(dir)?;
     let mut out = Vec::new();
     let mut new_map: BTreeMap<String, String> = BTreeMap::new();

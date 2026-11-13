@@ -12,13 +12,14 @@
 #
 # Options:
 #   --model-dir DIR   (required) model directory on the head
-#   --node HOST:PORT  (required) one per peer; repeat the flag for TP=4 (three peers), or give
+#   --node HOST:PORT  (required) one per peer; repeat for TP=4 (three) or experimental TP=8 (seven), or give
 #                     the peers in one flag separated by commas (--node A:29500,B:29500,C:29500)
 #   --port N          serving port on the head            (default 9000)
 #   --max-seq-len N   context length                     (default: pass-through to the engine)
 #   --max-batch N     max concurrent requests            (default: pass-through to the engine)
 #   --tp N            tensor-parallel world size         (default: 1 + the number of peers given
 #                     with --node; an explicit N that disagrees with that count is refused, exit 2)
+#   --experimental-tp8 explicitly opt in to the TP8 bring-up path (requires seven peers)
 #   --dry-run         print the exact engine command line and exit
 #   --help            this text
 #   -- <flags>        everything after -- is passed to gb10_inference verbatim
@@ -34,6 +35,7 @@ PORT=9000
 SEQ=""
 BATCH=""
 TP=""          # empty = derive from the --node count below
+EXPERIMENTAL_TP8=0
 NODES=""
 DRY_RUN=0
 
@@ -56,6 +58,7 @@ while [ $# -gt 0 ]; do
     --max-seq-len) [ $# -ge 2 ] || die "--max-seq-len needs a value"; SEQ="$2"; shift 2 ;;
     --max-batch)   [ $# -ge 2 ] || die "--max-batch needs a value"; BATCH="$2"; shift 2 ;;
     --tp)          [ $# -ge 2 ] || die "--tp needs a value"; [ -n "$2" ] || die "--tp needs a whole number (got '')"; TP="$2"; shift 2 ;;
+    --experimental-tp8) EXPERIMENTAL_TP8=1; shift ;;
     --dry-run)     DRY_RUN=1; shift ;;
     --help|-h)     usage; exit 0 ;;
     --)            shift; break ;;
@@ -84,9 +87,15 @@ fi
 # the engine takes a power-of-two world only (TP=2 = one peer, TP=4 = three peers): say so here,
 # in terms of the --node flags the user typed, instead of handing it a --tp it will refuse
 [ $((WORLD & (WORLD - 1))) -eq 0 ] || die "$N_NODES peer(s) given with --node make a world of $WORLD, and the engine serves a power-of-two world only: give one peer for TP=2 or three for TP=4"
+case "$WORLD" in
+  2|4) [ "$EXPERIMENTAL_TP8" -eq 0 ] || die "--experimental-tp8 needs seven peers (TP=8), got $N_NODES peer(s)" ;;
+  8) [ "$EXPERIMENTAL_TP8" -eq 1 ] || die "seven peers select TP=8, which requires --experimental-tp8 before --" ;;
+  *) die "TP=$WORLD is not a supported launcher world (use TP=2, TP=4 or explicitly opted-in experimental TP=8)" ;;
+esac
 [ -f "$MODEL_DIR/config.json" ] || { echo "ERROR: no model at $MODEL_DIR (no config.json)" >&2; exit 1; }
 
 ARGS=(--server --host 0.0.0.0 --port "$PORT" --model-dir "$MODEL_DIR" --tp "$TP")
+[ "$EXPERIMENTAL_TP8" -eq 0 ] || ARGS+=(--experimental-tp8)
 # repeated --node flags join into one comma-separated --nodes value (the engine's format)
 NODES_CSV=""
 for n in $NODES; do NODES_CSV="${NODES_CSV:+$NODES_CSV,}$n"; done

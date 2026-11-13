@@ -1,0 +1,362 @@
+{
+  "model_source_sha256": "e5decd76fe70fd56ef2f10124d245c6f64fb6a0003cc9068a1d3182a168b8d2d",
+  "fixture_sha256": "329867a7de2b8a55424805158bca969a9b306187338acd1f41746aeda2af8ac3",
+  "torch_version": "2.11.0+cu130",
+  "torch_commit": "70d99e998b4955e0049d13a98d77ae1b14db1f45",
+  "torch_cuda": "13.0",
+  "scalar_probes": [
+    {
+      "size": 1,
+      "input": -103.0,
+      "softplus_first_bits": 1,
+      "composed_first_bits": 1,
+      "softplus_first": 1.401298464324817e-45
+    },
+    {
+      "size": 1,
+      "input": -100.0,
+      "softplus_first_bits": 27,
+      "composed_first_bits": 27,
+      "softplus_first": 3.783505853677006e-44
+    },
+    {
+      "size": 1,
+      "input": -90.0,
+      "softplus_first_bits": 584744,
+      "composed_first_bits": 584744,
+      "softplus_first": 8.194008692231508e-40
+    },
+    {
+      "size": 1,
+      "input": 0.0,
+      "softplus_first_bits": 1060205080,
+      "composed_first_bits": 1060205080,
+      "softplus_first": 0.6931471824645996
+    },
+    {
+      "size": 1,
+      "input": 20.0,
+      "softplus_first_bits": 1101004800,
+      "composed_first_bits": 1101004800,
+      "softplus_first": 20.0
+    },
+    {
+      "size": 1,
+      "input": 21.0,
+      "softplus_first_bits": 1101529088,
+      "composed_first_bits": 1101529088,
+      "softplus_first": 21.0
+    },
+    {
+      "size": 4,
+      "input": -103.0,
+      "softplus_first_bits": 1,
+      "composed_first_bits": 1,
+      "softplus_first": 1.401298464324817e-45
+    },
+    {
+      "size": 4,
+      "input": -100.0,
+      "softplus_first_bits": 27,
+      "composed_first_bits": 27,
+      "softplus_first": 3.783505853677006e-44
+    },
+    {
+      "size": 4,
+      "input": -90.0,
+      "softplus_first_bits": 584744,
+      "composed_first_bits": 584744,
+      "softplus_first": 8.194008692231508e-40
+    },
+    {
+      "size": 4,
+      "input": 0.0,
+      "softplus_first_bits": 1060205080,
+      "composed_first_bits": 1060205080,
+      "softplus_first": 0.6931471824645996
+    },
+    {
+      "size": 4,
+      "input": 20.0,
+      "softplus_first_bits": 1101004800,
+      "composed_first_bits": 1101004800,
+      "softplus_first": 20.0
+    },
+    {
+      "size": 4,
+      "input": 21.0,
+      "softplus_first_bits": 1101529088,
+      "composed_first_bits": 1101529088,
+      "softplus_first": 21.0
+    },
+    {
+      "size": 384,
+      "input": -103.0,
+      "softplus_first_bits": 1,
+      "composed_first_bits": 1,
+      "softplus_first": 1.401298464324817e-45
+    },
+    {
+      "size": 384,
+      "input": -100.0,
+      "softplus_first_bits": 27,
+      "composed_first_bits": 27,
+      "softplus_first": 3.783505853677006e-44
+    },
+    {
+      "size": 384,
+      "input": -90.0,
+      "softplus_first_bits": 584744,
+      "composed_first_bits": 584744,
+      "softplus_first": 8.194008692231508e-40
+    },
+    {
+      "size": 384,
+      "input": 0.0,
+      "softplus_first_bits": 1060205080,
+      "composed_first_bits": 1060205080,
+      "softplus_first": 0.6931471824645996
+    },
+    {
+      "size": 384,
+      "input": 20.0,
+      "softplus_first_bits": 1101004800,
+      "composed_first_bits": 1101004800,
+      "softplus_first": 20.0
+    },
+    {
+      "size": 384,
+      "input": 21.0,
+      "softplus_first_bits": 1101529088,
+      "composed_first_bits": 1101529088,
+      "softplus_first": 21.0
+    }
+  ],
+  "route_cases": [
+    {
+      "name": "unbiased",
+      "rows": 1,
+      "indices": [
+        353,
+        62,
+        249,
+        145,
+        332,
+        41
+      ],
+      "weights": [
+        0.2514804005622864,
+        0.2511526942253113,
+        0.2504960894584656,
+        0.24950796365737915,
+        0.24884700775146484,
+        0.24851584434509277
+      ],
+      "weight_bits": [
+        1048625674,
+        1048614678,
+        1048592646,
+        1048542980,
+        1048498624,
+        1048476400
+      ],
+      "score0": 8.664727829454932e-06,
+      "score0_bits": 923885241
+    },
+    {
+      "name": "selection_bias",
+      "rows": 2,
+      "indices": [
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6
+      ],
+      "weights": [
+        0.8369326591491699,
+        0.43472933769226074,
+        0.15714044868946075,
+        0.05033582076430321,
+        0.01586778461933136,
+        0.004993924405425787,
+        6.959681968510267e-07,
+        0.33762991428375244,
+        0.3199605345726013,
+        0.30125656723976135,
+        0.2813117504119873,
+        0.2598405182361603
+      ],
+      "weight_bits": [
+        1062617400,
+        1054774488,
+        1042344301,
+        1028533487,
+        1015151912,
+        1000580115,
+        893047442,
+        1051516372,
+        1050923486,
+        1050295885,
+        1049626648,
+        1048906193
+      ],
+      "score0": 8.664727829454932e-06,
+      "score0_bits": 923885241
+    },
+    {
+      "name": "softplus_thresholds",
+      "rows": 1,
+      "indices": [
+        11,
+        10,
+        9,
+        8,
+        7,
+        6
+      ],
+      "weights": [
+        0.35827288031578064,
+        0.3102734088897705,
+        0.25333720445632935,
+        0.2193964421749115,
+        0.17958372831344604,
+        0.17913644015789032
+      ],
+      "weight_bits": [
+        1052209035,
+        1050598440,
+        1048687978,
+        1046522230,
+        1043850444,
+        1043820427
+      ],
+      "score0": 1.9451236165202506e-22,
+      "score0_bits": 460007081
+    },
+    {
+      "name": "all_underflow",
+      "rows": 1,
+      "indices": [
+        1,
+        0,
+        4,
+        5,
+        2,
+        3
+      ],
+      "weights": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "weight_bits": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "score0": 0.0,
+      "score0_bits": 0
+    },
+    {
+      "name": "tiny_score_eps",
+      "rows": 1,
+      "indices": [
+        1,
+        0,
+        4,
+        5,
+        2,
+        3
+      ],
+      "weights": [
+        0.02612757310271263,
+        0.02612757310271263,
+        0.02612757310271263,
+        0.02612757310271263,
+        0.02612757310271263,
+        0.02612757310271263
+      ],
+      "weight_bits": [
+        1020660094,
+        1020660094,
+        1020660094,
+        1020660094,
+        1020660094,
+        1020660094
+      ],
+      "score0": 1.9451236165202506e-22,
+      "score0_bits": 460007081
+    },
+    {
+      "name": "ties",
+      "rows": 2,
+      "indices": [
+        1,
+        0,
+        4,
+        5,
+        2,
+        3,
+        1,
+        0,
+        4,
+        5,
+        2,
+        3
+      ],
+      "weights": [
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388,
+        0.2499999850988388
+      ],
+      "weight_bits": [
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999,
+        1048575999
+      ],
+      "score0": 0.8325546383857727,
+      "score0_bits": 1062543949
+    }
+  ],
+  "schema_version": 1,
+  "kind": "official1017_Gate_TorchCUDA_goldens",
+  "capture_complete": true,
+  "model_execution": false,
+  "checkpoint_payload_read": false,
+  "model_free": true,
+  "capture_payload_sha256": "f2cea3ac5896b3c2a653e7b7e70af495d1e3eaaf4f1a8d1bb2c17be70b3dc0a5",
+  "capture_harness_sha256": "1aa567dc10e012e6457458f39b4509eeb811ecff32c4bc8f27808145fd36f599",
+  "scope": "Syntheticinputs only. Actual official Gate.forward AST on TorchCUDA2.11/13.0. Original CPUvectorfixture retained independently; nativeport/GPU qualification remains pending."
+}

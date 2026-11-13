@@ -63,7 +63,7 @@ fn same_words(what: &str, names: &[&str], frames: &[Vec<u32>], cmp: &[usize]) ->
 }
 
 fn check_shape(what: &str, frames: &[Vec<u32>], world: usize, payload: usize) -> Result<(), String> {
-    if frames.len() != world || frames.iter().any(|f| f.len() != payload) {
+    if world < 2 || frames.len() != world || frames.iter().any(|f| f.len() != payload) {
         return Err(format!("{what}: malformed hub result ({} frames of lengths {:?}, want {world} x {payload})",
                            frames.len(), frames.iter().map(|f| f.len()).collect::<Vec<_>>()));
     }
@@ -383,5 +383,59 @@ mod tests {
         assert!(GO_PAYLOAD * 4 + 8 <= GO_WIRE * 4 && PV_PAYLOAD * 4 + 8 <= PV_WIRE * 4 && RND_PAYLOAD * 4 + 8 <= RND_WIRE * 4
                 && ALLOC_PAYLOAD * 4 + 8 <= ALLOC_WIRE * 4,
                 "every frame keeps 8 bytes of tail headroom");
+    }
+
+    #[test]
+    fn eight_rank_verdicts_include_the_last_rank() {
+        let world = 8;
+        let go: Vec<_> = (0..world).map(|r| go_frame(r == 0, 0x71, 42, 3).to_vec()).collect();
+        assert_eq!(go_verdict(&go, world), Ok((42, 3)));
+        let mut bad_go = go;
+        bad_go[7][1] ^= 1;
+        assert!(go_verdict(&bad_go, world).unwrap_err().contains("rank 7 counter field"));
+
+        let pv = all_same(pv_frame(0x72, 1, 0xABCD, 0), world);
+        assert_eq!(pv_verdict(&pv, world), Ok(()));
+        for word in 0..PV_PAYLOAD {
+            let mut bad = pv.clone();
+            bad[7][word] ^= 1;
+            assert!(pv_verdict(&bad, world).unwrap_err().contains("rank 7"));
+        }
+
+        let round = all_same(rnd_frame(&rin(42, 1, 1, 0xABCD, 24, 3.5)), world);
+        let out = rnd_verdict(&round, world).unwrap();
+        assert_eq!((out.ms, out.plain_ms, out.captured), (3.5, 5.25, true));
+        assert!(out.epoch_skew.is_empty());
+        for word in 0..5 {
+            let mut bad = round.clone();
+            bad[7][word] ^= 1;
+            assert!(rnd_verdict(&bad, world).err().unwrap().contains("rank 7"));
+        }
+
+        let digests = [1, 2, 3, 4, 5, u64::MAX];
+        let mut ident: Vec<_> = (0..world).map(|_| id_frame(42, &digests)).collect();
+        assert_eq!(id_verdict(&ident, world, digests.len()), Ok(0));
+        ident[7][ID_HDR + 2 * (digests.len() - 1) + 1] ^= 1;
+        assert_eq!(id_verdict(&ident, world, digests.len()), Ok(1));
+
+        let mut alloc = all_same(alloc_frame(3, true), world);
+        assert_eq!(alloc_verdict(&alloc, world), Ok(vec![]));
+        alloc[7] = alloc_frame(3, false).to_vec();
+        assert_eq!(alloc_verdict(&alloc, world), Ok(vec![7]));
+        let mut spill = all_same(spill_frame(true), world);
+        assert_eq!(spill_verdict(&spill, world), Ok(true));
+        spill[7] = spill_frame(false).to_vec();
+        assert_eq!(spill_verdict(&spill, world), Ok(false));
+    }
+
+    #[test]
+    fn empty_world_is_an_error_for_every_verdict() {
+        let no_frames = Vec::new();
+        assert!(go_verdict(&no_frames, 0).is_err());
+        assert!(pv_verdict(&no_frames, 0).is_err());
+        assert!(rnd_verdict(&no_frames, 0).is_err());
+        assert!(id_verdict(&no_frames, 0, 0).is_err());
+        assert!(alloc_verdict(&no_frames, 0).is_err());
+        assert!(spill_verdict(&no_frames, 0).is_err());
     }
 }

@@ -1,0 +1,15 @@
+{
+  "model": "deepseek-v4.1-flash",
+  "max_tokens": 1,
+  "temperature": 0.0,
+  "seed": 42,
+  "messages": [
+    [
+      {
+        "role": "user",
+        "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+      }
+    ]
+  ],
+  "return_token_ids": true
+}

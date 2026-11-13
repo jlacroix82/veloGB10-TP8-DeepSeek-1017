@@ -3,3 +3,9 @@ target/
 *.nsys-rep
 *.sqlite
 .DS_Store
+/test-data/
+/local-config/
+/.env
+*.safetensors
+*.gguf
+*.log

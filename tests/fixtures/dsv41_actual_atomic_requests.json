@@ -1,0 +1,652 @@
+{
+  "schema_version": 1,
+  "kind": "actual_historical_atomic_request_CPU_reference",
+  "cases": [
+    {
+      "case": "code-C8",
+      "concurrency": 8,
+      "source_record_sha256": "7ba78f78767200c6cd31d4235ab362754a07564b228b2580bdc5daf5c06b99fe",
+      "request": {
+        "model": "deepseek-v4.1-flash",
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 42,
+        "messages": [
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ]
+        ],
+        "return_token_ids": true
+      },
+      "native_prompt_ids": [
+        0,
+        128799,
+        77666,
+        288,
+        9504,
+        482,
+        28,
+        223,
+        2402,
+        343,
+        16801,
+        223,
+        19,
+        15,
+        1457,
+        14,
+        270,
+        4077,
+        270,
+        1990,
+        14,
+        270,
+        850,
+        15146,
+        270,
+        22805,
+        868,
+        128803,
+        21750,
+        260,
+        5553,
+        15255,
+        9963,
+        294,
+        411,
+        46360,
+        55,
+        23809,
+        1812,
+        1353,
+        270,
+        5103,
+        11202,
+        16,
+        52480,
+        2613,
+        49439,
+        14,
+        541,
+        10,
+        19,
+        11,
+        1178,
+        305,
+        3065,
+        4836,
+        14,
+        7768,
+        22891,
+        14,
+        305,
+        260,
+        3107,
+        71187,
+        2511,
+        16,
+        28231,
+        270,
+        15599,
+        1561,
+        270,
+        4181,
+        16,
+        128804,
+        128821
+      ],
+      "native_prompt_sha256_u32le": "f5cd9db5cc738c2a8b7eafadd34de50dc3ba70cb18c782d380517ea093975c4b",
+      "scope": "Actual retained body only; original output measurements not rerun by CPU tests."
+    },
+    {
+      "case": "prose-C8",
+      "concurrency": 8,
+      "source_record_sha256": "0a25552ef3d84be22418861bd407442ea46c226db8766a01b13fb716ecf8023d",
+      "request": {
+        "model": "deepseek-v4.1-flash",
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 42,
+        "messages": [
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ]
+        ],
+        "return_token_ids": true
+      },
+      "native_prompt_ids": [
+        0,
+        128799,
+        77666,
+        288,
+        9504,
+        482,
+        28,
+        223,
+        2402,
+        343,
+        16801,
+        223,
+        19,
+        15,
+        1457,
+        14,
+        270,
+        4077,
+        270,
+        1990,
+        14,
+        270,
+        850,
+        15146,
+        270,
+        22805,
+        868,
+        128803,
+        65106,
+        14,
+        295,
+        19041,
+        10021,
+        46030,
+        14,
+        1192,
+        71350,
+        59524,
+        588,
+        4138,
+        4063,
+        65020,
+        14914,
+        62027,
+        1901,
+        36506,
+        270,
+        4216,
+        2645,
+        734,
+        5238,
+        6380,
+        16,
+        35614,
+        21743,
+        3711,
+        14,
+        31898,
+        2753,
+        14,
+        291,
+        19468,
+        14,
+        305,
+        52636,
+        16,
+        128804,
+        128821
+      ],
+      "native_prompt_sha256_u32le": "c2df86f184dc4c8fb2f1f684315808386ca2d6b65758ef3a51cbd70209ead6e3",
+      "scope": "Actual retained body only; original output measurements not rerun by CPU tests."
+    },
+    {
+      "case": "code-C16",
+      "concurrency": 16,
+      "source_record_sha256": "80bbc87e58cffdd51fff4a42c768a251dbdc324f2f60512c0964cf8a774e3cd5",
+      "request": {
+        "model": "deepseek-v4.1-flash",
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 42,
+        "messages": [
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Write a complete Python implementation of an LRU cache using only the standard library. Include type hints, O(1) get and put methods, capacity validation, and a short executable example. Explain the complexity after the code."
+            }
+          ]
+        ],
+        "return_token_ids": true
+      },
+      "native_prompt_ids": [
+        0,
+        128799,
+        77666,
+        288,
+        9504,
+        482,
+        28,
+        223,
+        2402,
+        343,
+        16801,
+        223,
+        19,
+        15,
+        1457,
+        14,
+        270,
+        4077,
+        270,
+        1990,
+        14,
+        270,
+        850,
+        15146,
+        270,
+        22805,
+        868,
+        128803,
+        21750,
+        260,
+        5553,
+        15255,
+        9963,
+        294,
+        411,
+        46360,
+        55,
+        23809,
+        1812,
+        1353,
+        270,
+        5103,
+        11202,
+        16,
+        52480,
+        2613,
+        49439,
+        14,
+        541,
+        10,
+        19,
+        11,
+        1178,
+        305,
+        3065,
+        4836,
+        14,
+        7768,
+        22891,
+        14,
+        305,
+        260,
+        3107,
+        71187,
+        2511,
+        16,
+        28231,
+        270,
+        15599,
+        1561,
+        270,
+        4181,
+        16,
+        128804,
+        128821
+      ],
+      "native_prompt_sha256_u32le": "f5cd9db5cc738c2a8b7eafadd34de50dc3ba70cb18c782d380517ea093975c4b",
+      "scope": "Actual retained body only; original output measurements not rerun by CPU tests."
+    },
+    {
+      "case": "prose-C16",
+      "concurrency": 16,
+      "source_record_sha256": "b1f88040be78f33f503bc5b120c1e85c68285ba558b830100689a4fbc7462e63",
+      "request": {
+        "model": "deepseek-v4.1-flash",
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 42,
+        "messages": [
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ],
+          [
+            {
+              "role": "user",
+              "content": "Explain, in precise technical prose, how speculative decoding can increase language-model serving throughput while preserving the target model's output distribution. Discuss acceptance rate, verification cost, batching, and latency."
+            }
+          ]
+        ],
+        "return_token_ids": true
+      },
+      "native_prompt_ids": [
+        0,
+        128799,
+        77666,
+        288,
+        9504,
+        482,
+        28,
+        223,
+        2402,
+        343,
+        16801,
+        223,
+        19,
+        15,
+        1457,
+        14,
+        270,
+        4077,
+        270,
+        1990,
+        14,
+        270,
+        850,
+        15146,
+        270,
+        22805,
+        868,
+        128803,
+        65106,
+        14,
+        295,
+        19041,
+        10021,
+        46030,
+        14,
+        1192,
+        71350,
+        59524,
+        588,
+        4138,
+        4063,
+        65020,
+        14914,
+        62027,
+        1901,
+        36506,
+        270,
+        4216,
+        2645,
+        734,
+        5238,
+        6380,
+        16,
+        35614,
+        21743,
+        3711,
+        14,
+        31898,
+        2753,
+        14,
+        291,
+        19468,
+        14,
+        305,
+        52636,
+        16,
+        128804,
+        128821
+      ],
+      "native_prompt_sha256_u32le": "c2df86f184dc4c8fb2f1f684315808386ca2d6b65758ef3a51cbd70209ead6e3",
+      "scope": "Actual retained body only; original output measurements not rerun by CPU tests."
+    }
+  ]
+}

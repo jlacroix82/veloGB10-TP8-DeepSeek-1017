@@ -19,6 +19,24 @@ use crate::net::{self, TpLink};
 use cudarc::driver::{CudaDevice, DevicePtr, LaunchAsync, LaunchConfig};
 use cudarc::nvrtc::Ptx;
 
+/// Preserve existing TP2/4 benchmark defaults while qualifying TP8 with the same exact-tail
+/// GPU receiver as the conservative serving profile. An explicit legacy TP8 request is refused.
+fn serial_gpu_recv_for(world: u32, requested: Option<&str>) -> anyhow::Result<bool> {
+    let on = match requested {
+        None => world == 8,
+        Some("1" | "on" | "true") => true,
+        Some("0" | "off" | "false") => false,
+        Some(v) => anyhow::bail!("--tp-gpu-recv '{v}': expected on/off"),
+    };
+    anyhow::ensure!(world != 8 || on, "TP8 firstlight requires --tp-gpu-recv on (exact generation-tail receive)");
+    Ok(on)
+}
+
+fn serial_gpu_recv(world: u32) -> anyhow::Result<bool> {
+    let requested = crate::opts::var(crate::opt!("tp-gpu-recv")).ok();
+    serial_gpu_recv_for(world, requested.as_deref())
+}
+
 pub struct BenchArgs {
     pub rank: i32,
     pub peer: String,
@@ -183,9 +201,10 @@ pub fn run(a: BenchArgs) -> anyhow::Result<()> {
     println!("    spacing {} µs  inject-delay-max {} µs  poison {}  stall every {} for {} µs",
              a.spacing_us, a.inject_delay_us_max, a.poison, a.stall_every, a.stall_us);
 
+    let gpu_recv = serial_gpu_recv(a.world)?;
     let dev = CudaDevice::new(0)?;
     let ptx = Ptx::from_src(crate::ptx_embed::GPU_BATCH);
-    let names = ["tp_gate_copy_signal", "tp_wait_add", "tp_wait_add_4way", "tp_bench_fill", "tp_bench_validate",
+    let names = ["tp_gate_copy_signal", "tp_wait_add", "tp_wait_add_g", "tp_wait_add_4way", "tp_bench_fill", "tp_bench_validate",
                  "tp_bench_stall", "tp_bench_now", "kernel_build_id"];
     dev.load_ptx(ptx, "tpb", &names)?;
     let f = |n: &str| dev.get_func("tpb", n).ok_or_else(|| anyhow::anyhow!("missing kernel {n}"));
@@ -223,12 +242,16 @@ pub fn run(a: BenchArgs) -> anyhow::Result<()> {
         // GPU-direct receive for the same reason.
         link.set_recv_mode(true)?;
         f("tp_wait_add_4way")?
+    } else if gpu_recv {
+        link.set_recv_mode(true)?;
+        f("tp_wait_add_g")?
     } else {
         f("tp_wait_add")?
     };
     link.bench_config(a.inject_delay_us_max, true);
     if a.cq_hold > 0 { link.bench_cq_hold(a.cq_hold, a.cq_hold_us)?; }
     println!("[bench] link up (world {}); proxy → core {}", a.world, a.proxy_core);
+    println!("[bench] serial receive: {}", if gpu_recv { "v2 GPU exact-tail" } else { "v1 CPU bounce" });
 
     // GPU<->CPU clock offset: %globaltimer and CLOCK_MONOTONIC_RAW have different epochs, so any
     // cross-domain stage delta is meaningless without this. Bracket a timestamp kernel and take the
@@ -252,7 +275,10 @@ pub fn run(a: BenchArgs) -> anyhow::Result<()> {
     let n_elems = a.payload_bytes / 2;                       // bf16 elements
     let src = dev.alloc_zeros::<u8>(a.payload_bytes)?;
     let out = dev.alloc_zeros::<u8>(a.payload_bytes)?;
-    let err = dev.alloc_zeros::<u64>(4)?;
+    let mut err = dev.alloc_zeros::<u64>(4)?;
+    // Keep the first-error counter deterministic before the validation kernel's atomicAdd.
+    dev.memset_zeros(&mut err)?;
+    dev.synchronize()?;
     let cfg1 = LaunchConfig { grid_dim: (1,1,1), block_dim: (512,1,1), shared_mem_bytes: 0 };
 
     // The proxy owns the transport from here (I8: nothing else mutates protocol state). ManuallyDrop
@@ -709,6 +735,9 @@ pub fn run_reduce_dec_nway(a: DecWorldArgs) -> anyhow::Result<()> {
     };
     let world = a.world as usize;
     let rounds = crate::tp_xport::rounds_of(world)?;
+    let gpu_recv = serial_gpu_recv(a.world)?;
+    anyhow::ensure!(!gpu_recv || a.mode == "decwserial",
+        "GPU-direct decode bench currently qualifies only --mode decwserial; the other arms need their own v2 launch qualification");
     anyhow::ensure!(a.rank >= 0 && (a.rank as usize) < world, "--rank {} is outside world {world}", a.rank);
     anyhow::ensure!(a.peer_ips.len() >= world, "--peer-ips needs {world} rank-indexed IPs (got {})", a.peer_ips.len());
     let n = a.floats;
@@ -716,7 +745,7 @@ pub fn run_reduce_dec_nway(a: DecWorldArgs) -> anyhow::Result<()> {
     println!("=== --tp-reduce-bench rank {} world {} ({} exchange(s) per logical reduce) mode {} floats {} ({:.0} KiB) batches {} K2 blocks {} ===",
              a.rank, world, rounds, a.mode, n, n as f64 * 4.0 / 1024.0, a.reduces, a.blocks);
     let dev = CudaDevice::new(0)?;
-    let kern = crate::tp_xport::Kernels::load(&dev, "tprb")?;
+    let kern = crate::tp_xport::Kernels::load_with_recv(&dev, "tprb", gpu_recv)?;
     let names = ["xq_ks_combine_f32", "xq_ks_combine_f32_k1l", "xq_tp_wait_add_dec", "xq_cvt_f32_f16", "xq_tp_wait_keys"];
     let ptx = Ptx::from_src(crate::exl3_bench::bench_ptx_src());
     dev.load_ptx(ptx, "tpgw", &names)?;
@@ -728,6 +757,8 @@ pub fn run_reduce_dec_nway(a: DecWorldArgs) -> anyhow::Result<()> {
     let ips: Vec<std::net::IpAddr> = a.peer_ips[..world].iter().map(|s| s.parse()).collect::<Result<_, _>>()?;
     let mut link = TpLink::connect_nway(a.rank, world as i32, &ips, a.port, &a.dev, a.gid, crate::tp::TP_SLOT_BYTES)?;
     link.set_payload(2560 * 4, true)?;
+    if gpu_recv { link.set_recv_mode(true)?; }
+    println!("[bench] serial receive: {}", if gpu_recv { "v2 GPU exact-tail" } else { "v1 CPU bounce" });
     let ctx = link.ctx_device_ptr();
     let link = std::mem::ManuallyDrop::new(link);
     net::spawn_proxy(link.ctx_addr(), a.proxy_core);
@@ -935,7 +966,9 @@ pub fn run_reduce_dec_nway(a: DecWorldArgs) -> anyhow::Result<()> {
     }
     dev.synchronize()?;
     std::thread::sleep(std::time::Duration::from_millis(300));
-    if bad != 0 || checked == 0 { anyhow::bail!("decode world bench validation FAILED"); }
+    if bad != 0 || checked == 0 || link.abort_status() != 0 || link.tail_fires() != 0 {
+        anyhow::bail!("decode world bench validation/transport FAILED");
+    }
     Ok(())
 }
 
@@ -1491,10 +1524,14 @@ pub fn run_reduce_w4(a: ReduceW4Args) -> anyhow::Result<()> {
     use crate::exl3_forward::xtp;
     let nr = w4_check_combo(a.xport, &a.io)?;
     anyhow::ensure!(a.world > 2 && (a.world as u32).is_power_of_two(), "--world {} (this harness is world > 2, a power of two; world 2 is the TP-F bench)", a.world);
+    anyhow::ensure!(a.world <= 8, "--world {} exceeds this benchmark's eight-rank numerical reference", a.world);
     anyhow::ensure!(a.rank >= 0 && a.rank < a.world, "--rank {} outside 0..{}", a.rank, a.world);
     anyhow::ensure!(a.peer_ips.len() >= a.world as usize, "--peer-ips needs {} rank-indexed addresses (got {})", a.world, a.peer_ips.len());
     anyhow::ensure!(a.reduces >= 1, "--reduces must be >= 1");
     let rounds = crate::tp_xport::rounds_of(a.world as usize)?;
+    let gpu_recv = serial_gpu_recv(a.world as u32)?;
+    anyhow::ensure!(!gpu_recv || a.xport == 0,
+        "GPU-direct prefill bench currently qualifies only --xport 0 (serial); pipelined receive has a separate protocol");
     let shift = 1 % rounds;   // R10: an even aligned start runs round (0 + 1) % rounds first
     let ips: Vec<std::net::IpAddr> = a.peer_ips[..a.world as usize].iter().map(|s| s.parse())
         .collect::<Result<_, _>>().map_err(|e| anyhow::anyhow!("--peer-ips: {e}"))?;
@@ -1502,13 +1539,15 @@ pub fn run_reduce_w4(a: ReduceW4Args) -> anyhow::Result<()> {
     println!("=== --tp-reduce-bench --world {} rank {} xport {} ({} rail(s)) io {} sizes {:?} MB reduces {} (+{} warmup) lookahead {} blocks {} ===",
              a.world, a.rank, a.xport, nr, a.io, a.sizes_mb, a.reduces, a.warmup, a.lookahead, a.blocks);
     let dev = CudaDevice::new(0)?;
-    let kern = crate::tp_xport::Kernels::load(&dev, "tprb")?;
+    let kern = crate::tp_xport::Kernels::load_with_recv(&dev, "tprb", gpu_recv)?;
     if a.main_core >= 0 && !net::pin_thread(a.main_core) {
         anyhow::bail!("could not pin the bench thread to core {}", a.main_core);
     }
     // rail 1: the N-way link, exactly as tp::bring_up builds it; the proxy owns it from here
     let mut link = TpLink::connect_nway(a.rank, a.world, &ips, a.port, &a.dev, a.gid, crate::tp::TP_SLOT_BYTES)?;
     link.set_payload(W4_ROW_FLOATS * 4, true)?;
+    if gpu_recv { link.set_recv_mode(true)?; }
+    println!("[bench] serial receive: {}", if gpu_recv { "v2 GPU exact-tail" } else { "v1 CPU bounce" });
     let ctx = link.ctx_device_ptr();
     let link = std::mem::ManuallyDrop::new(link);
     net::spawn_proxy(link.ctx_addr(), a.proxy_core);
@@ -1633,13 +1672,33 @@ pub fn run_reduce_w4(a: ReduceW4Args) -> anyhow::Result<()> {
     for r in &rows_out { println!("{r}"); }
     println!("  VALIDATION: {total_bad} mismatching elements over {total_reduces} reduces => {}",
              if total_bad == 0 && phase_ok { "BITWISE_OK" } else { "FAIL" });
-    if total_bad != 0 || !phase_ok { anyhow::bail!("world-{} reduce bench validation FAILED", a.world); }
+    if total_bad != 0 || !phase_ok || link.abort_status() != 0 || link.tail_fires() != 0 {
+        anyhow::bail!("world-{} reduce bench validation/transport FAILED", a.world);
+    }
+    if let Some(l2) = &link2 {
+        anyhow::ensure!(l2.abort_status() == 0 && l2.tail_fires() == 0, "rail-2 transport FAILED");
+    }
     Ok(())
 }
 
 #[cfg(test)]
 mod w4_tests {
     use super::*;
+
+    #[test]
+    fn serial_receive_selection_preserves_defaults_and_requires_tp8_exact_tails() {
+        for world in [2u32, 4] {
+            assert!(!serial_gpu_recv_for(world, None).unwrap());
+            assert!(!serial_gpu_recv_for(world, Some("off")).unwrap());
+            assert!(serial_gpu_recv_for(world, Some("on")).unwrap());
+        }
+        assert!(serial_gpu_recv_for(8, None).unwrap());
+        assert!(serial_gpu_recv_for(8, Some("1")).unwrap());
+        assert!(serial_gpu_recv_for(8, Some("off")).is_err());
+        assert!(serial_gpu_recv_for(8, Some("0")).is_err());
+        assert!(serial_gpu_recv_for(8, Some("false")).is_err());
+        assert!(serial_gpu_recv_for(4, Some("invalid")).is_err());
+    }
 
     #[test]
     fn sweep_payloads_are_whole_rows() {

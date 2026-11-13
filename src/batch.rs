@@ -10,6 +10,68 @@ use tokio::sync::mpsc;
 
 use crate::gpu::{BatchGpuState, B, CudaGraph, DecodeBuffers, GpuModel, Pool};
 
+/// Optional TP-head diagnostics only. Physical slots keep their SID through logical-lane
+/// compaction; a reused slot gets a new SID even when its native prompt is identical.
+struct TpBatchTrace {
+    started: std::time::Instant,
+    next_sid: u64,
+    next_launch: u64,
+    slots: Vec<Option<u64>>,
+}
+
+fn native_prompt_sha256(prompt: &[u32]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hash = Sha256::new();
+    for &id in prompt { hash.update(id.to_le_bytes()); }
+    format!("{:x}", hash.finalize())
+}
+
+impl TpBatchTrace {
+    fn new(slots: usize) -> Self {
+        Self { started: std::time::Instant::now(), next_sid: 0, next_launch: 0, slots: vec![None; slots] }
+    }
+
+    fn stamp(&self, mut event: serde_json::Value) -> serde_json::Value {
+        event["schema"] = 1.into();
+        event["epoch_us"] = (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default().as_micros() as u64).into();
+        event["elapsed_us"] = (self.started.elapsed().as_micros() as u64).into();
+        event
+    }
+
+    fn admit(&mut self, slot: usize, prompt: &[u32], requested_max_new: usize,
+             max_new: usize, cached_tokens: usize) -> serde_json::Value {
+        self.next_sid += 1;
+        self.slots[slot] = Some(self.next_sid);
+        self.stamp(serde_json::json!({"event":"admit", "sid":self.next_sid, "slot":slot,
+            "prompt_ids_sha256":native_prompt_sha256(prompt), "prompt_tokens":prompt.len(),
+            "requested_max_new":requested_max_new, "max_new":max_new, "cached_tokens":cached_tokens}))
+    }
+
+    /// `rows` is in the exact order uploaded to the decode buffers and returned by the forward.
+    fn begin(&mut self, rows: &[(usize, usize, usize)]) -> (u64, serde_json::Value) {
+        self.next_launch += 1;
+        let rows: Vec<_> = rows.iter().map(|&(lane, slot, pos)| serde_json::json!({
+            "lane":lane, "sid":self.slots[slot], "slot":slot, "pos":pos})).collect();
+        (self.next_launch, self.stamp(serde_json::json!({"event":"decode_begin",
+            "launch_seq":self.next_launch, "width":rows.len(), "rows":rows})))
+    }
+
+    fn end(&self, launch_seq: u64, width: usize) -> serde_json::Value {
+        self.stamp(serde_json::json!({"event":"decode_end", "launch_seq":launch_seq, "width":width}))
+    }
+
+    fn finish(&mut self, slot: usize, pos: usize, generated: usize, reason: &str) -> serde_json::Value {
+        let sid = self.slots[slot].take();
+        self.stamp(serde_json::json!({"event":"finish", "sid":sid, "slot":slot,
+            "pos":pos, "generated":generated, "reason":reason}))
+    }
+}
+
+fn emit_tp_batch_trace(event: serde_json::Value) {
+    eprintln!("[tp-batch-trace] {event}");
+}
+
 // R9: a process-global handle to the live scheduler's (gpu, state) so net::agree — which every rank
 // reaches on the mismatch sentinel — can dump the GDN recurrent state for the cross-rank diff.
 static R9_STATE: std::sync::Mutex<Option<(usize, usize)>> = std::sync::Mutex::new(None); // (gpu_ptr, state_ptr)
@@ -993,6 +1055,8 @@ pub struct BatchScheduler {
     /// turn and hallucinate the next one. See QwenTokenizer::stop_token_ids.
     eos: Vec<u32>,
     max_batch: usize,
+    /// None off the diagnostic TP head: no hashing, clock reads, row allocations or logging.
+    tp_batch_trace: Option<TpBatchTrace>,
     rx: mpsc::UnboundedReceiver<BatchRequest>,
     lanes: Vec<Option<Lane>>,
     /// PLAN/SCHEDULER_2LANE_WORKDOC.md §3.1 — the ONE in-flight prefill (the per-lane cursor).
@@ -1580,9 +1644,13 @@ impl BatchScheduler {
             gpu.set_df2_capture_tree(ws.clone());
             Some(ws)
         } else { None };
+        let tp_batch_trace = if crate::opts::on(crate::opt!("tp-batch-trace"))
+            && gpu.tp_world() > 1 && gpu.tp_rank() == 0 {
+            Some(TpBatchTrace::new(max_batch))
+        } else { None };
         let mut s = Self {
             dflash: None,
-            gpu, pool, state, bufs, graphs, kv_stride, eos, max_batch, rx,
+            gpu, pool, state, bufs, graphs, kv_stride, eos, max_batch, tp_batch_trace, rx,
             lanes: (0..max_batch).map(|_| None).collect(),
             free_slots: (0..max_batch).rev().collect(),
             slot_cache: vec![Vec::new(); max_batch],
@@ -2530,6 +2598,9 @@ impl BatchScheduler {
             return;
         }
         // (max_new was already clamped to the KV budget above the reject — BUG2 fix, 2026-09-06.)
+        if let Some(trace) = self.tp_batch_trace.as_mut() {
+            emit_tp_batch_trace(trace.admit(phys, &prompt, asked_max_new, max_new, reuse));
+        }
 
         // Bound the pool. Safe here: `trim` synchronizes before freeing, and this runs before any GPU
         // work for this request. Without it the pool grows forever — see Pool::trim.
@@ -3374,6 +3445,9 @@ impl BatchScheduler {
                 let lane = self.lanes[i].take().unwrap();
                 self.free_slots.push(lane.phys);
                 let reason = if lane.generated >= lane.max_new { "length" } else { "stop" };
+                if let Some(trace) = self.tp_batch_trace.as_mut() {
+                    emit_tp_batch_trace(trace.finish(lane.phys, lane.pos, lane.generated, reason));
+                }
                 let _ = lane.tx.send(TokEvent::Finish { reason: reason.to_string() });
                 // PLAN/25 Phase 0: close the serving dump job (no-op when none is open; in bench
                 // mode run_spec_bench's own job_end then no-ops the same way — taps are written
@@ -6246,6 +6320,17 @@ impl BatchScheduler {
     /// per lane (length = batch_idx.len()).
     fn batched_decode(&mut self, batch_idx: &[usize]) -> Vec<u32> {
         let s = batch_idx.len();
+        // This records the actual plain-dispatch subset, rather than queue/inflight counts.
+        // Its end record is emitted only after the forward returns; failed calls stay unmatched.
+        let trace_launch = if let Some(trace) = self.tp_batch_trace.as_mut() {
+            let rows: Vec<_> = batch_idx.iter().map(|&i| {
+                let lane = self.lanes[i].as_ref().unwrap();
+                (i, lane.phys, lane.pos)
+            }).collect();
+            let (seq, event) = trace.begin(&rows);
+            emit_tp_batch_trace(event);
+            Some(seq)
+        } else { None };
         let mb = self.max_batch;
         let mp = crate::gpu::MAX_PEN_TOKENS;
         // W2: a schema lane in this batch disables the resident loop AND the captured graphs —
@@ -6258,7 +6343,7 @@ impl BatchScheduler {
         let max_pc = batch_idx.iter()
             .map(|&i| self.lanes[i].as_ref().unwrap().pos + 1).max().unwrap_or(1);
 
-        if resident {
+        let result = if resident {
             // ---- DEVICE-RESIDENT TOKEN LOOP (EXPERT_DEVICE_ARGMAX_LOOP_RESPONSE §7.3) ----
             // Clean steps upload NOTHING: tokens/pos/slot_ids/ring/keys are device-resident and
             // current (the graph head's ids_advance_b / epilogue ring push advanced them last
@@ -6490,6 +6575,61 @@ impl BatchScheduler {
                     &mut self.pool, &mut self.bufs, &mut self.state, self.kv_stride, max_pc, s)
             };
             toks
+        };
+        if let (Some(trace), Some(seq)) = (self.tp_batch_trace.as_ref(), trace_launch) {
+            emit_tp_batch_trace(trace.end(seq, s));
+        }
+        result
+    }
+}
+
+#[cfg(test)]
+mod tp_batch_trace_tests {
+    use super::{native_prompt_sha256, TpBatchTrace};
+
+    #[test]
+    fn prompt_hash_has_a_fixed_native_u32_le_encoding() {
+        assert_eq!(native_prompt_sha256(&[1, 2]),
+            "34fb5c825de7ca4aea6e712f19d439c1da0c92c37b423936c5f618545ca4fa1f");
+        assert_eq!(native_prompt_sha256(&[0x01020304]),
+            "ee10da4aefe61a37df1dee937ca3221afa3b2351f9ea34edbbb769573c6785f7");
+        assert_ne!(native_prompt_sha256(&[1, 2]), native_prompt_sha256(&[2, 1]));
+        assert_ne!(native_prompt_sha256(&[1, 2]), native_prompt_sha256(&[1]));
+    }
+
+    #[test]
+    fn trace_rows_keep_request_identity_through_compaction_and_slot_reuse() {
+        let mut trace = TpBatchTrace::new(4);
+        let a = trace.admit(3, &[1, 2], 128, 8, 0);
+        let b = trace.admit(1, &[1, 2], 64, 64, 1);
+        assert_eq!(a["sid"], 1); assert_eq!(b["sid"], 2);
+        assert_eq!(a["prompt_ids_sha256"], b["prompt_ids_sha256"]);
+        assert_eq!(a["requested_max_new"], 128); assert_eq!(a["max_new"], 8);
+        assert_eq!(a["prompt_tokens"], 2); assert_eq!(b["cached_tokens"], 1);
+        assert!(a.get("prompt").is_none() && a.get("prompt_ids").is_none());
+
+        let (seq, start) = trace.begin(&[(0, 3, 2), (1, 1, 17)]);
+        assert_eq!(seq, 1); assert_eq!(start["width"], 2);
+        assert_eq!(start["rows"], serde_json::json!([
+            {"lane":0,"sid":1,"slot":3,"pos":2}, {"lane":1,"sid":2,"slot":1,"pos":17}]));
+        let end = trace.end(seq, 2);
+        assert_eq!(end["launch_seq"], start["launch_seq"]);
+        assert_eq!(end["width"], start["width"]);
+        assert!(end["elapsed_us"].as_u64().unwrap() >= start["elapsed_us"].as_u64().unwrap());
+        assert_eq!(trace.finish(3, 10, 8, "length")["sid"], 1);
+
+        // Logical lane 1 compacts to 0, while the same physical slot and request SID survive.
+        let (seq, compact) = trace.begin(&[(0, 1, 18)]);
+        assert_eq!(seq, 2); assert_eq!(compact["rows"][0]["sid"], 2);
+        assert_eq!(compact["rows"][0]["lane"], 0);
+        let reused = trace.admit(3, &[1, 2], 128, 8, 0);
+        assert_eq!(reused["sid"], 3);
+        let (_, next) = trace.begin(&[(0, 1, 19), (1, 3, 2)]);
+        assert_eq!(next["rows"][0]["sid"], 2);
+        assert_eq!(next["rows"][1]["sid"], 3);
+        for event in [&a, &b, &start, &end, &compact, &reused, &next] {
+            assert_eq!(event["schema"], 1);
+            assert!(event["epoch_us"].as_u64().unwrap() > 0);
         }
     }
 }

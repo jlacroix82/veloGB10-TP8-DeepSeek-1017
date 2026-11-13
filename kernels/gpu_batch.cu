@@ -560,16 +560,12 @@ extern "C" __global__ void tp_wait_add_g(tp_dev_ctx* c, __nv_bfloat16* out, cons
     const unsigned len = n * ((fp32_mode == 1 || fp32_mode == 2) ? 4u : 2u);
     const unsigned wire = (len + 7u) & ~7u;
     const unsigned char* peer = tp_recv_slot_ptr(c, e);
-    // N-way receive-side clean (world>2 only): a previous occupant of this round-keyed slot left
-    // its own generation-tagged tail behind. A stale tail can never EQUAL e (the prior generation
-    // is e - rounds*R), but clear it defensively so no torn/early word from a past generation can
-    // satisfy the stage-B equality for THIS epoch. Guarded `!= e`: if the fresh tail already
-    // landed (the peer posted ahead of us — legitimate), leave it untouched; erasing it would
-    // deadlock stage B. world==2 keeps the legacy single-ring path byte-identical.
-    if (c->world > 2 && threadIdx.x == 0) {
-        volatile unsigned long long* tw = (volatile unsigned long long*)(peer + wire);
-        if (tp_ld_relaxed((const unsigned long long*)tw) != e) *tw = 0ull;
-    }
+    // Receive tails are NIC-owned generation tags: the waiter must never write them. A conditional
+    // load-old / store-zero can race a NIC write of e between those operations and erase the fresh
+    // commit. Fresh contexts zero the rings and start at epoch 0; K1 pre-increments, and epochs must
+    // not be reused within a context. Thus an earlier slot generation cannot equal e, and the exact
+    // equality below already rejects stale tails without clearing them. Rewinding/seeding a context
+    // onto a stored tag is invalid with either scheme: the old conditional clear also left tag==e.
     __syncthreads();
     __shared__ int s_timeout;
     if (threadIdx.x == 0) {

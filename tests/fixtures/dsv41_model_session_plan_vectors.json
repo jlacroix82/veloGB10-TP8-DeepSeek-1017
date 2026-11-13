@@ -1,0 +1,526 @@
+{
+  "schema_version": 1,
+  "CPU_only": true,
+  "GPU_imports": false,
+  "model_payload_read": false,
+  "F32_epoch_elements": 261888,
+  "BF16_epoch_elements": 523776,
+  "operation_word_order": [
+    "role_tag",
+    "layer_or40",
+    "operation_id",
+    "rows",
+    "cols",
+    "row_kind_tag",
+    "epochs"
+  ],
+  "step_word_order": [
+    "step_index",
+    "start",
+    "tokens",
+    "end",
+    "output_ordinal_or0",
+    "operation_begin",
+    "operation_end",
+    "epoch_before",
+    "epoch_after"
+  ],
+  "generator_sha256": "e684dd7285b4e5b100a4775ef23e6684c594835b9fb60557e9793773cefc0a7c",
+  "cases": [
+    {
+      "name": "old75_output32",
+      "prompt_tokens": 75,
+      "output_allowance": 32,
+      "steps": 32,
+      "operations": 2688,
+      "BF16_index_operations": 0,
+      "end_epoch": 8313,
+      "ignored_prefill_heads": 0,
+      "operation_geometry_sha256": "f3bf5dcc74f0868e1d7c09d524a7269cee352c92a1cb302e05da04e881e4cd7c",
+      "step_geometry_sha256": "d9ca545f77c63323439779783a5807fc1ba720b14da2dbefbc62cc3f12aa9f92",
+      "selected_steps": [
+        {
+          "step_index": 0,
+          "start": 0,
+          "tokens": 75,
+          "end": 75,
+          "output_ordinal_or0": 1,
+          "operations": 84,
+          "epoch_before": 0,
+          "epoch_after": 501,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 1,
+          "start": 75,
+          "tokens": 1,
+          "end": 76,
+          "output_ordinal_or0": 2,
+          "operations": 84,
+          "epoch_before": 501,
+          "epoch_after": 753,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 31,
+          "start": 105,
+          "tokens": 1,
+          "end": 106,
+          "output_ordinal_or0": 32,
+          "operations": 84,
+          "epoch_before": 8061,
+          "epoch_after": 8313,
+          "BF16_index_layer_keys": []
+        }
+      ]
+    },
+    {
+      "name": "prefill129_output2",
+      "prompt_tokens": 129,
+      "output_allowance": 2,
+      "steps": 3,
+      "operations": 252,
+      "BF16_index_operations": 0,
+      "end_epoch": 1260,
+      "ignored_prefill_heads": 1,
+      "operation_geometry_sha256": "b2311846e16d106af5e291f00bb34eea0379b551937242fd2ccfc9482faaf246",
+      "step_geometry_sha256": "c078088ea60254e7a5422d2c2d08f577b57141b4c1b6e80c5e24dc214cc293a6",
+      "selected_steps": [
+        {
+          "step_index": 0,
+          "start": 0,
+          "tokens": 128,
+          "end": 128,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 0,
+          "epoch_after": 756,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 1,
+          "start": 128,
+          "tokens": 1,
+          "end": 129,
+          "output_ordinal_or0": 1,
+          "operations": 84,
+          "epoch_before": 756,
+          "epoch_after": 1008,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 2,
+          "start": 129,
+          "tokens": 1,
+          "end": 130,
+          "output_ordinal_or0": 2,
+          "operations": 84,
+          "epoch_before": 1008,
+          "epoch_after": 1260,
+          "BF16_index_layer_keys": []
+        }
+      ]
+    },
+    {
+      "name": "index513_output1",
+      "prompt_tokens": 513,
+      "output_allowance": 1,
+      "steps": 5,
+      "operations": 425,
+      "BF16_index_operations": 5,
+      "end_epoch": 3291,
+      "ignored_prefill_heads": 4,
+      "operation_geometry_sha256": "11d3a192a02cc1d15d03c53716fdc3c89348a98d8aeec608c13d124735b56302",
+      "step_geometry_sha256": "d233065bceb78f2a177c56232c69f80db936d5d8dfb7811a1881f217197c962a",
+      "selected_steps": [
+        {
+          "step_index": 0,
+          "start": 0,
+          "tokens": 128,
+          "end": 128,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 0,
+          "epoch_after": 756,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 1,
+          "start": 128,
+          "tokens": 128,
+          "end": 256,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 756,
+          "epoch_after": 1512,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 3,
+          "start": 384,
+          "tokens": 128,
+          "end": 512,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 2268,
+          "epoch_after": 3024,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 4,
+          "start": 512,
+          "tokens": 1,
+          "end": 513,
+          "output_ordinal_or0": 1,
+          "operations": 89,
+          "epoch_before": 3024,
+          "epoch_after": 3291,
+          "BF16_index_layer_keys": [
+            [
+              20,
+              513
+            ],
+            [
+              24,
+              513
+            ],
+            [
+              28,
+              513
+            ],
+            [
+              32,
+              513
+            ],
+            [
+              36,
+              513
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "odd1025_output3",
+      "prompt_tokens": 1025,
+      "output_allowance": 3,
+      "steps": 11,
+      "operations": 965,
+      "BF16_index_operations": 41,
+      "end_epoch": 6927,
+      "ignored_prefill_heads": 8,
+      "operation_geometry_sha256": "3b75e206b0ba11289fcaa9f1b2cf901fa0b82488fa86836435f237ad5042955d",
+      "step_geometry_sha256": "5a265f0d67b6b2505d638c049678f4dba3ad38477707c9f554b51b17f405924b",
+      "selected_steps": [
+        {
+          "step_index": 0,
+          "start": 0,
+          "tokens": 128,
+          "end": 128,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 0,
+          "epoch_after": 756,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 1,
+          "start": 128,
+          "tokens": 128,
+          "end": 256,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 756,
+          "epoch_after": 1512,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 3,
+          "start": 384,
+          "tokens": 128,
+          "end": 512,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 2268,
+          "epoch_after": 3024,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 7,
+          "start": 896,
+          "tokens": 128,
+          "end": 1024,
+          "output_ordinal_or0": 0,
+          "operations": 89,
+          "epoch_before": 5337,
+          "epoch_after": 6108,
+          "BF16_index_layer_keys": [
+            [
+              20,
+              1024
+            ],
+            [
+              24,
+              1024
+            ],
+            [
+              28,
+              1024
+            ],
+            [
+              32,
+              1024
+            ],
+            [
+              36,
+              1024
+            ]
+          ]
+        },
+        {
+          "step_index": 8,
+          "start": 1024,
+          "tokens": 1,
+          "end": 1025,
+          "output_ordinal_or0": 1,
+          "operations": 89,
+          "epoch_before": 6108,
+          "epoch_after": 6375,
+          "BF16_index_layer_keys": [
+            [
+              20,
+              1025
+            ],
+            [
+              24,
+              1025
+            ],
+            [
+              28,
+              1025
+            ],
+            [
+              32,
+              1025
+            ],
+            [
+              36,
+              1025
+            ]
+          ]
+        },
+        {
+          "step_index": 9,
+          "start": 1025,
+          "tokens": 1,
+          "end": 1026,
+          "output_ordinal_or0": 2,
+          "operations": 92,
+          "epoch_before": 6375,
+          "epoch_after": 6651,
+          "BF16_index_layer_keys": [
+            [
+              2,
+              513
+            ],
+            [
+              8,
+              513
+            ],
+            [
+              14,
+              513
+            ],
+            [
+              20,
+              1026
+            ],
+            [
+              24,
+              1026
+            ],
+            [
+              28,
+              1026
+            ],
+            [
+              32,
+              1026
+            ],
+            [
+              36,
+              1026
+            ]
+          ]
+        },
+        {
+          "step_index": 10,
+          "start": 1026,
+          "tokens": 1,
+          "end": 1027,
+          "output_ordinal_or0": 3,
+          "operations": 92,
+          "epoch_before": 6651,
+          "epoch_after": 6927,
+          "BF16_index_layer_keys": [
+            [
+              2,
+              513
+            ],
+            [
+              8,
+              513
+            ],
+            [
+              14,
+              513
+            ],
+            [
+              20,
+              1027
+            ],
+            [
+              24,
+              1027
+            ],
+            [
+              28,
+              1027
+            ],
+            [
+              32,
+              1027
+            ],
+            [
+              36,
+              1027
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "full4096_output4096",
+      "prompt_tokens": 4096,
+      "output_allowance": 4096,
+      "steps": 4127,
+      "operations": 379640,
+      "BF16_index_operations": 32972,
+      "end_epoch": 1155063,
+      "ignored_prefill_heads": 31,
+      "operation_geometry_sha256": "e3747a530aa08331140ea373cd0eaf03aaf93f4f9cd3ee5e3e816db2ae72e66e",
+      "step_geometry_sha256": "73935343337a9a5dd36ce7c83c0ee1d5b11118b33c1ed308d2be539e7bc5a160",
+      "selected_steps": [
+        {
+          "step_index": 0,
+          "start": 0,
+          "tokens": 128,
+          "end": 128,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 0,
+          "epoch_after": 756,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 1,
+          "start": 128,
+          "tokens": 128,
+          "end": 256,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 756,
+          "epoch_after": 1512,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 3,
+          "start": 384,
+          "tokens": 128,
+          "end": 512,
+          "output_ordinal_or0": 0,
+          "operations": 84,
+          "epoch_before": 2268,
+          "epoch_after": 3024,
+          "BF16_index_layer_keys": []
+        },
+        {
+          "step_index": 7,
+          "start": 896,
+          "tokens": 128,
+          "end": 1024,
+          "output_ordinal_or0": 0,
+          "operations": 89,
+          "epoch_before": 5337,
+          "epoch_after": 6108,
+          "BF16_index_layer_keys": [
+            [
+              20,
+              1024
+            ],
+            [
+              24,
+              1024
+            ],
+            [
+              28,
+              1024
+            ],
+            [
+              32,
+              1024
+            ],
+            [
+              36,
+              1024
+            ]
+          ]
+        },
+        {
+          "step_index": 4126,
+          "start": 8190,
+          "tokens": 1,
+          "end": 8191,
+          "output_ordinal_or0": 4096,
+          "operations": 92,
+          "epoch_before": 1154787,
+          "epoch_after": 1155063,
+          "BF16_index_layer_keys": [
+            [
+              2,
+              4095
+            ],
+            [
+              8,
+              4095
+            ],
+            [
+              14,
+              4095
+            ],
+            [
+              20,
+              8191
+            ],
+            [
+              24,
+              8191
+            ],
+            [
+              28,
+              8191
+            ],
+            [
+              32,
+              8191
+            ],
+            [
+              36,
+              8191
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

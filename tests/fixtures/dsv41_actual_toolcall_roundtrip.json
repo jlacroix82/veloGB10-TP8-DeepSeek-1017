@@ -1,0 +1,201 @@
+{
+  "kind": "retained_actual_native_response_original_clean_message_roundtrip",
+  "actual_response": {
+    "id": "chatcmpl-native-eadef0cb6d4e4d34ad4a431559198e12",
+    "object": "chat.completion",
+    "created": 1794093270,
+    "model": "deepseek-v4.1-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "index": 0,
+              "id": "call_00_kiggAYtGIO59RNO9ugtJ2240",
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "arguments": "{\"value\": {\"balance_delta\": 7, \"operation_id\": \"op_47\"}}"
+              }
+            }
+          ]
+        },
+        "logprobs": null,
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 292,
+      "completion_tokens": 48,
+      "total_tokens": 340,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 292
+    },
+    "system_fingerprint": null
+  },
+  "actual_failed_followup": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Call echo exactly once with the value {\"balance_delta\": 7, \"operation_id\": \"op_47\"}."
+      },
+      {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_00_kiggAYtGIO59RNO9ugtJ2240",
+            "type": "function",
+            "function": {
+              "name": "echo",
+              "arguments": "{\"value\": {\"balance_delta\": 7, \"operation_id\": \"op_47\"}}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "call_00_kiggAYtGIO59RNO9ugtJ2240",
+        "content": "{\"value\": {\"balance_delta\": 7, \"operation_id\": \"op_47\"}, \"executions\": 1}"
+      },
+      {
+        "role": "user",
+        "content": "The local fixture executed. Reply exactly ACK_47, without another tool call."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 512,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "echo",
+          "description": "Local isolated fixture operation echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "value": {}
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "tool_choice": "none"
+  },
+  "normalized_response": {
+    "id": "chatcmpl-native-eadef0cb6d4e4d34ad4a431559198e12",
+    "object": "chat.completion",
+    "created": 1794093270,
+    "model": "deepseek-v4.1-flash",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_00_kiggAYtGIO59RNO9ugtJ2240",
+              "type": "function",
+              "function": {
+                "name": "echo",
+                "arguments": "{\"value\": {\"balance_delta\": 7, \"operation_id\": \"op_47\"}}"
+              }
+            }
+          ]
+        },
+        "logprobs": null,
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 292,
+      "completion_tokens": 48,
+      "total_tokens": 340,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 292
+    },
+    "system_fingerprint": null
+  },
+  "same_original_clean_message_followup": {
+    "model": "deepseek-v4.1-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Call echo exactly once with the value {\"balance_delta\": 7, \"operation_id\": \"op_47\"}."
+      },
+      {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "id": "call_00_kiggAYtGIO59RNO9ugtJ2240",
+            "type": "function",
+            "function": {
+              "name": "echo",
+              "arguments": "{\"value\": {\"balance_delta\": 7, \"operation_id\": \"op_47\"}}"
+            }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "call_00_kiggAYtGIO59RNO9ugtJ2240",
+        "content": "{\"value\": {\"balance_delta\": 7, \"operation_id\": \"op_47\"}, \"executions\": 1}"
+      },
+      {
+        "role": "user",
+        "content": "The local fixture executed. Reply exactly ACK_47, without another tool call."
+      }
+    ],
+    "temperature": 0,
+    "top_p": 1,
+    "max_tokens": 512,
+    "chat_template_kwargs": {
+      "thinking": false
+    },
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "echo",
+          "description": "Local isolated fixture operation echo",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "value": {}
+            },
+            "required": [
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "tool_choice": "none"
+  },
+  "client_source_sha256": "2d76949c7a16042a69d51b5815c40f24bb733772b88c79e8609abd23664d48bb",
+  "actual_response_record_sha256": "c3bc64af80b98d81e44ee58bb82217c9807a489abba2568b7522cf20ea32ace6",
+  "actual_failed_followup_sha256": "461af8b338a4c758ffe22b06f6a874029c21582ae1e47f092f8f88d2dd192e41",
+  "scope": "Actual original synthetic protocol16 response; no evaluator/tool effect replay or model execution in this fixture generation."
+}

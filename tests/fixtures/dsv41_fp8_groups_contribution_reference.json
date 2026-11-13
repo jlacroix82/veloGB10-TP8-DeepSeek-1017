@@ -1,0 +1,1003 @@
+{
+  "schema_version": 1,
+  "CPU_only": true,
+  "GPU_or_network_calls": 0,
+  "source": "FP64 exact diagnostic group dot, separate F32 multiplies; NaN payload canonicalization only for intermediate diagnostic hashes",
+  "input_reference_sha256": "b1bff8725d0f69e9927e30e65bcd184120de4d7b8291a7bc03a3499a3f44d8d3",
+  "generator_sha256": "2a8680fde79c6b53c083a7de54e6b10807876b6391d6ed33ce29a498a35965d7",
+  "case_count": 124,
+  "records": [
+    {
+      "case": "mixed_safe_M1_N16_K32",
+      "M": 1,
+      "N": 16,
+      "K": 32,
+      "count": 16,
+      "canonical_sha256": "bf487304a7f4634450bae23fa63d175178eabbdc5a4068593fa461ee9226869e"
+    },
+    {
+      "case": "mixed_safe_M1_N16_K64",
+      "M": 1,
+      "N": 16,
+      "K": 64,
+      "count": 32,
+      "canonical_sha256": "23079b92dd81cc7f1b016f1f6150b84e3571f1447e1d81d3e6ce1a836a79ecf0"
+    },
+    {
+      "case": "mixed_safe_M1_N16_K5120",
+      "M": 1,
+      "N": 16,
+      "K": 5120,
+      "count": 2560,
+      "canonical_sha256": "76b2c9a260e569f255145533219bcc97aa7a11c1bc1e16d61c6cd958ebc1c4d7"
+    },
+    {
+      "case": "mixed_safe_M1_N32_K32",
+      "M": 1,
+      "N": 32,
+      "K": 32,
+      "count": 32,
+      "canonical_sha256": "e8128382f7961351bca81f60f6ca185451caf1268d3594c360cb1d3ef060fd9e"
+    },
+    {
+      "case": "mixed_safe_M1_N32_K64",
+      "M": 1,
+      "N": 32,
+      "K": 64,
+      "count": 64,
+      "canonical_sha256": "0eec168b510dcfa2dc66fb8b7ff4dabb69a860c5228213e5ee672e424f894fe8"
+    },
+    {
+      "case": "mixed_safe_M1_N32_K5120",
+      "M": 1,
+      "N": 32,
+      "K": 5120,
+      "count": 5120,
+      "canonical_sha256": "5cc88006287bf6652c5f7f0d857713639ee65e45e2b0cdcc2a08d68a7baf1c8d"
+    },
+    {
+      "case": "mixed_safe_M1_N33_K32",
+      "M": 1,
+      "N": 33,
+      "K": 32,
+      "count": 33,
+      "canonical_sha256": "457ea987f84e5ab8aa7c6322134eb981b2974db4e3a2edc9968596855078e8a7"
+    },
+    {
+      "case": "mixed_safe_M1_N33_K64",
+      "M": 1,
+      "N": 33,
+      "K": 64,
+      "count": 66,
+      "canonical_sha256": "5bd8410f27ae452e4c63a7559e57dceadf2ab934040b4a6a2a8b1e8263754f49"
+    },
+    {
+      "case": "mixed_safe_M1_N33_K5120",
+      "M": 1,
+      "N": 33,
+      "K": 5120,
+      "count": 5280,
+      "canonical_sha256": "20a78551c328caedc63300293b8cb4d6cd6581c9228383f9eef0ea4024d850ea"
+    },
+    {
+      "case": "mixed_safe_M1_N48_K32",
+      "M": 1,
+      "N": 48,
+      "K": 32,
+      "count": 48,
+      "canonical_sha256": "320f60d40b525fc8157a074de54c5dcba68e2210aae7e664f82860d32ac2efcc"
+    },
+    {
+      "case": "mixed_safe_M1_N48_K64",
+      "M": 1,
+      "N": 48,
+      "K": 64,
+      "count": 96,
+      "canonical_sha256": "3e7b97b430a0f3194de01b25a6dacecd77856644cb2a56201e3358fc644dc01b"
+    },
+    {
+      "case": "mixed_safe_M1_N48_K5120",
+      "M": 1,
+      "N": 48,
+      "K": 5120,
+      "count": 7680,
+      "canonical_sha256": "4ef3883135d76d3bcb509e2d9ed17935c91237e250dfa8029eab386be466fa19"
+    },
+    {
+      "case": "mixed_safe_M2_N16_K32",
+      "M": 2,
+      "N": 16,
+      "K": 32,
+      "count": 32,
+      "canonical_sha256": "bd6481c7e613279f9d0d516a88d8ad1370096faf00668e740698196e686a787c"
+    },
+    {
+      "case": "mixed_safe_M2_N16_K64",
+      "M": 2,
+      "N": 16,
+      "K": 64,
+      "count": 64,
+      "canonical_sha256": "4ed3052f62a47506bf41869bfffe2597d8bfccfad2bfc40f3da02506e4da0a08"
+    },
+    {
+      "case": "mixed_safe_M2_N16_K5120",
+      "M": 2,
+      "N": 16,
+      "K": 5120,
+      "count": 5120,
+      "canonical_sha256": "a4477c667658bde9b3e1e361eed5efbb3eee6888447b48b6a4b4f25e35db2a3f"
+    },
+    {
+      "case": "mixed_safe_M2_N32_K32",
+      "M": 2,
+      "N": 32,
+      "K": 32,
+      "count": 64,
+      "canonical_sha256": "fd12b635eb51652595ddf1dcabc08951b3603432d0302fd46a4c0ee690f6309e"
+    },
+    {
+      "case": "mixed_safe_M2_N32_K64",
+      "M": 2,
+      "N": 32,
+      "K": 64,
+      "count": 128,
+      "canonical_sha256": "1ca00ad76f545c544654316f2eca2bf39d57cb4d275c81850d6561b42e9f9551"
+    },
+    {
+      "case": "mixed_safe_M2_N32_K5120",
+      "M": 2,
+      "N": 32,
+      "K": 5120,
+      "count": 10240,
+      "canonical_sha256": "7a25525615755b88c62d18517a18af67f4e0f1a7b7433a2e811443e3798c0764"
+    },
+    {
+      "case": "mixed_safe_M2_N33_K32",
+      "M": 2,
+      "N": 33,
+      "K": 32,
+      "count": 66,
+      "canonical_sha256": "ac0bc9db1d1c5c8241dba476be193ee2ce03022e51f25edd0d03e483e47548aa"
+    },
+    {
+      "case": "mixed_safe_M2_N33_K64",
+      "M": 2,
+      "N": 33,
+      "K": 64,
+      "count": 132,
+      "canonical_sha256": "40b750ebc66ed7a4df7b1f11d38b74056f5ced12d7048109c8d2773a7b685914"
+    },
+    {
+      "case": "mixed_safe_M2_N33_K5120",
+      "M": 2,
+      "N": 33,
+      "K": 5120,
+      "count": 10560,
+      "canonical_sha256": "fed7d35f933a67572abfdc86414f242d990c942b7e9a4cd089bf0055b363a6e4"
+    },
+    {
+      "case": "mixed_safe_M2_N48_K32",
+      "M": 2,
+      "N": 48,
+      "K": 32,
+      "count": 96,
+      "canonical_sha256": "3b993c0e1d0a40aff7014ee2d1b3e3728c82c0a58845a70b36db1f8723051fd8"
+    },
+    {
+      "case": "mixed_safe_M2_N48_K64",
+      "M": 2,
+      "N": 48,
+      "K": 64,
+      "count": 192,
+      "canonical_sha256": "4bd969b98c9b5f3afe499d7bd49fe36894d02ee7e56b2b0696f9fa97bc8f3c72"
+    },
+    {
+      "case": "mixed_safe_M2_N48_K5120",
+      "M": 2,
+      "N": 48,
+      "K": 5120,
+      "count": 15360,
+      "canonical_sha256": "6394533e5db6f34589c82e6cdf5af1ae4e671cfed3ac8b9256f61e6fe307d06f"
+    },
+    {
+      "case": "mixed_safe_M8_N16_K32",
+      "M": 8,
+      "N": 16,
+      "K": 32,
+      "count": 128,
+      "canonical_sha256": "1ead996cc0de211c763bd5e39869a07594de49107988395d512035054c66497f"
+    },
+    {
+      "case": "mixed_safe_M8_N16_K64",
+      "M": 8,
+      "N": 16,
+      "K": 64,
+      "count": 256,
+      "canonical_sha256": "cef1d1d4ea341f32b37bfdb9378252cf373fe72d3efddfffedd1165d6072a2f8"
+    },
+    {
+      "case": "mixed_safe_M8_N16_K5120",
+      "M": 8,
+      "N": 16,
+      "K": 5120,
+      "count": 20480,
+      "canonical_sha256": "41ce71173a9dc0d264b5d7e084f8bd980562e325a9d14bbf546701d439f85f5e"
+    },
+    {
+      "case": "mixed_safe_M8_N32_K32",
+      "M": 8,
+      "N": 32,
+      "K": 32,
+      "count": 256,
+      "canonical_sha256": "ac67330d522d0c3be89b11d825ae2bcac56da9432817b3511c0dbf5a352af668"
+    },
+    {
+      "case": "mixed_safe_M8_N32_K64",
+      "M": 8,
+      "N": 32,
+      "K": 64,
+      "count": 512,
+      "canonical_sha256": "b2c6d76209d35f3c065e34d8a981f3248444516a771c59cc6c99f718478f3e1c"
+    },
+    {
+      "case": "mixed_safe_M8_N32_K5120",
+      "M": 8,
+      "N": 32,
+      "K": 5120,
+      "count": 40960,
+      "canonical_sha256": "a486098a063b99a82b8c2334c1ca7d60a58a1a3766b3e7e5bfbd2c577f48195e"
+    },
+    {
+      "case": "mixed_safe_M8_N33_K32",
+      "M": 8,
+      "N": 33,
+      "K": 32,
+      "count": 264,
+      "canonical_sha256": "bc8cc062a5305ad5b9179012b42a8a0521ad1b4d2db97c5aae89d518d4b21f1a"
+    },
+    {
+      "case": "mixed_safe_M8_N33_K64",
+      "M": 8,
+      "N": 33,
+      "K": 64,
+      "count": 528,
+      "canonical_sha256": "eb9d6aa8cde881db1af59e8a258e425d43fa016f733967f70ab0680e9fcd5376"
+    },
+    {
+      "case": "mixed_safe_M8_N33_K5120",
+      "M": 8,
+      "N": 33,
+      "K": 5120,
+      "count": 42240,
+      "canonical_sha256": "06369255b435c91dca40ad3ae5b8b2226e4779f2fac3ff6c6782527beb031018"
+    },
+    {
+      "case": "mixed_safe_M8_N48_K32",
+      "M": 8,
+      "N": 48,
+      "K": 32,
+      "count": 384,
+      "canonical_sha256": "78302428e049759bb3d78d7da5f28521a6ea20d9328a29fc5efa0024ba6ab3eb"
+    },
+    {
+      "case": "mixed_safe_M8_N48_K64",
+      "M": 8,
+      "N": 48,
+      "K": 64,
+      "count": 768,
+      "canonical_sha256": "6868ae1bf78f16518fb9b3cb5c765021d6e4062caeed05523e4204781b497420"
+    },
+    {
+      "case": "mixed_safe_M8_N48_K5120",
+      "M": 8,
+      "N": 48,
+      "K": 5120,
+      "count": 61440,
+      "canonical_sha256": "6b0456c5bd85f616cf65591de1fcbc7aaf607185c46d2512d647d48d82b766fa"
+    },
+    {
+      "case": "mixed_safe_M16_N16_K32",
+      "M": 16,
+      "N": 16,
+      "K": 32,
+      "count": 256,
+      "canonical_sha256": "615a2f57620f02b49ec2a524e894085bfff39e952ae1db3527539dae8ac8b20d"
+    },
+    {
+      "case": "mixed_safe_M16_N16_K64",
+      "M": 16,
+      "N": 16,
+      "K": 64,
+      "count": 512,
+      "canonical_sha256": "8655006007e72e8ee068345cfb7e5410bf2677cdc8d444c70bb5bb138cbd12d6"
+    },
+    {
+      "case": "mixed_safe_M16_N16_K5120",
+      "M": 16,
+      "N": 16,
+      "K": 5120,
+      "count": 40960,
+      "canonical_sha256": "3349c3d6271a36f05b635288f63ad032238ed855394752fc41cd52b218be4fa6"
+    },
+    {
+      "case": "mixed_safe_M16_N32_K32",
+      "M": 16,
+      "N": 32,
+      "K": 32,
+      "count": 512,
+      "canonical_sha256": "7da7867156318961c9bfbbe48705e94df9a6b261fd81f011429515969389588d"
+    },
+    {
+      "case": "mixed_safe_M16_N32_K64",
+      "M": 16,
+      "N": 32,
+      "K": 64,
+      "count": 1024,
+      "canonical_sha256": "3e9707e86791c88ce8946424c3924b2cf198b364586cdcfc112e9667d4f10a28"
+    },
+    {
+      "case": "mixed_safe_M16_N32_K5120",
+      "M": 16,
+      "N": 32,
+      "K": 5120,
+      "count": 81920,
+      "canonical_sha256": "9cbea849ad27e92e00affa7049a58496188e9fa38aa1e89829840b71615dfe02"
+    },
+    {
+      "case": "mixed_safe_M16_N33_K32",
+      "M": 16,
+      "N": 33,
+      "K": 32,
+      "count": 528,
+      "canonical_sha256": "9d2df4e20944df1caaa09f34eeac53eeaedcbc0988b0f0b6f1d201b34dc427d4"
+    },
+    {
+      "case": "mixed_safe_M16_N33_K64",
+      "M": 16,
+      "N": 33,
+      "K": 64,
+      "count": 1056,
+      "canonical_sha256": "b3caedf2c2d703b1605a573e88466bc43116f9c98e80d4e84a8845ecb816fb55"
+    },
+    {
+      "case": "mixed_safe_M16_N33_K5120",
+      "M": 16,
+      "N": 33,
+      "K": 5120,
+      "count": 84480,
+      "canonical_sha256": "587dd351fd2614b1f2e95404c2dc74224bd4839c84ef5a34347d0cb1384074d7"
+    },
+    {
+      "case": "mixed_safe_M16_N48_K32",
+      "M": 16,
+      "N": 48,
+      "K": 32,
+      "count": 768,
+      "canonical_sha256": "a19763f163bc674b83309e2693d2225a121586b73973797a1986d8c3f91c234c"
+    },
+    {
+      "case": "mixed_safe_M16_N48_K64",
+      "M": 16,
+      "N": 48,
+      "K": 64,
+      "count": 1536,
+      "canonical_sha256": "fac6dee389886e2fa2945adfc25d904dde10a44ab7f3b7e926479267d5df8af3"
+    },
+    {
+      "case": "mixed_safe_M16_N48_K5120",
+      "M": 16,
+      "N": 48,
+      "K": 5120,
+      "count": 122880,
+      "canonical_sha256": "d61fd3c12ca54851eb214ab5cb1e98c11710df841ef129fb13d89a6943d8825e"
+    },
+    {
+      "case": "mixed_safe_M17_N16_K32",
+      "M": 17,
+      "N": 16,
+      "K": 32,
+      "count": 272,
+      "canonical_sha256": "fb1c0368a040b6159e96b737d8567d3d7b313869e1a4d9650536d93a9cdf9ff9"
+    },
+    {
+      "case": "mixed_safe_M17_N16_K64",
+      "M": 17,
+      "N": 16,
+      "K": 64,
+      "count": 544,
+      "canonical_sha256": "be7571e7e8361767b92448aee9bc0c66d32c0156b799162bdc22a249df0689f2"
+    },
+    {
+      "case": "mixed_safe_M17_N16_K5120",
+      "M": 17,
+      "N": 16,
+      "K": 5120,
+      "count": 43520,
+      "canonical_sha256": "bb823a71386165d47aa729c8a142f741cfcdf60ec1c8deaed7a44716d65eb79d"
+    },
+    {
+      "case": "mixed_safe_M17_N32_K32",
+      "M": 17,
+      "N": 32,
+      "K": 32,
+      "count": 544,
+      "canonical_sha256": "05eb2fe1c9084610d4b9fcbb0e1a9197ffceccbc9b073b064a23a41de4ca17f3"
+    },
+    {
+      "case": "mixed_safe_M17_N32_K64",
+      "M": 17,
+      "N": 32,
+      "K": 64,
+      "count": 1088,
+      "canonical_sha256": "a39742c77bde34f336c5c6954e54180c64b8e02cf3ef98c2c778b31ad01a71fd"
+    },
+    {
+      "case": "mixed_safe_M17_N32_K5120",
+      "M": 17,
+      "N": 32,
+      "K": 5120,
+      "count": 87040,
+      "canonical_sha256": "c9732c93445d8d113780feaa53ef6345be3b08410b7ba72f3858631d92424f1d"
+    },
+    {
+      "case": "mixed_safe_M17_N33_K32",
+      "M": 17,
+      "N": 33,
+      "K": 32,
+      "count": 561,
+      "canonical_sha256": "9c147ab5e7d8c2eb24791b25739c14a495b79ed2751025dc0bedacc399726f38"
+    },
+    {
+      "case": "mixed_safe_M17_N33_K64",
+      "M": 17,
+      "N": 33,
+      "K": 64,
+      "count": 1122,
+      "canonical_sha256": "127634b58fd39f887940a2c256d7958ad395739cfaed63539c1193b251e37a49"
+    },
+    {
+      "case": "mixed_safe_M17_N33_K5120",
+      "M": 17,
+      "N": 33,
+      "K": 5120,
+      "count": 89760,
+      "canonical_sha256": "6f12c584d2c5e125a135ce515bb92f7d3bc2a32246291a5c9436258f22306db3"
+    },
+    {
+      "case": "mixed_safe_M17_N48_K32",
+      "M": 17,
+      "N": 48,
+      "K": 32,
+      "count": 816,
+      "canonical_sha256": "f83a13a89885b9b367d2c17f21a01a1360eda0bab725ddad7e6d79b68cd04ab1"
+    },
+    {
+      "case": "mixed_safe_M17_N48_K64",
+      "M": 17,
+      "N": 48,
+      "K": 64,
+      "count": 1632,
+      "canonical_sha256": "5ef2dc6cce3d09284ad6746b8ba6fedaa4f89dfed23d5f4423d62c02796c47eb"
+    },
+    {
+      "case": "mixed_safe_M17_N48_K5120",
+      "M": 17,
+      "N": 48,
+      "K": 5120,
+      "count": 130560,
+      "canonical_sha256": "0418668e99d6c12df0aed7eb46f040bd6e0bd3cd26be31a93c622f06061ef421"
+    },
+    {
+      "case": "mixed_safe_M31_N16_K32",
+      "M": 31,
+      "N": 16,
+      "K": 32,
+      "count": 496,
+      "canonical_sha256": "fbd17e3e32417953d4cb62d714f63e4b4b8b9943cf6812126dc34f7e94197f7b"
+    },
+    {
+      "case": "mixed_safe_M31_N16_K64",
+      "M": 31,
+      "N": 16,
+      "K": 64,
+      "count": 992,
+      "canonical_sha256": "374266e95f9146e11d90cf04da008b0049f6f7130f075d8b5c113af7b93a6326"
+    },
+    {
+      "case": "mixed_safe_M31_N16_K5120",
+      "M": 31,
+      "N": 16,
+      "K": 5120,
+      "count": 79360,
+      "canonical_sha256": "253e7761ff7a7a79e976845a1ca17d6b1e47514606c7c5d4b2c4ab9bca72b8e0"
+    },
+    {
+      "case": "mixed_safe_M31_N32_K32",
+      "M": 31,
+      "N": 32,
+      "K": 32,
+      "count": 992,
+      "canonical_sha256": "6ec1cc513b12acc3f3afb91d5fa3c993d46dc9c66bfe0a0a0e7a395bbbf2d893"
+    },
+    {
+      "case": "mixed_safe_M31_N32_K64",
+      "M": 31,
+      "N": 32,
+      "K": 64,
+      "count": 1984,
+      "canonical_sha256": "19e63d1a9ea5a6f066e9f5c4140ca7f4d21a61ddb703fab4c7e574b43ac14f8a"
+    },
+    {
+      "case": "mixed_safe_M31_N32_K5120",
+      "M": 31,
+      "N": 32,
+      "K": 5120,
+      "count": 158720,
+      "canonical_sha256": "b623308ec79022052a59dc79253e9bcdc7abcc447658e5bbdb9232329479cbe8"
+    },
+    {
+      "case": "mixed_safe_M31_N33_K32",
+      "M": 31,
+      "N": 33,
+      "K": 32,
+      "count": 1023,
+      "canonical_sha256": "8feb6874e106e4ac8c93582c22909ebc9ae5fa65c1f923f05ff00dab7179566a"
+    },
+    {
+      "case": "mixed_safe_M31_N33_K64",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "mixed_safe_M31_N33_K5120",
+      "M": 31,
+      "N": 33,
+      "K": 5120,
+      "count": 163680,
+      "canonical_sha256": "9a688b918472be136bed74dc20c6e2150b049a80c0531a7aa2a224fb971df006"
+    },
+    {
+      "case": "mixed_safe_M31_N48_K32",
+      "M": 31,
+      "N": 48,
+      "K": 32,
+      "count": 1488,
+      "canonical_sha256": "31bdd411c494807f55056b68273d02d91f51ddf195e5aa533a8653f2e2b3f55e"
+    },
+    {
+      "case": "mixed_safe_M31_N48_K64",
+      "M": 31,
+      "N": 48,
+      "K": 64,
+      "count": 2976,
+      "canonical_sha256": "ffe531c239bfce541c438a7781f741dda9414f1dc5c3c6ac81677740bdecb448"
+    },
+    {
+      "case": "mixed_safe_M31_N48_K5120",
+      "M": 31,
+      "N": 48,
+      "K": 5120,
+      "count": 238080,
+      "canonical_sha256": "a8331aa3c1f9233fae205e64ae7c6946562c10cd9000a2ac99e4bd41b20b81e0"
+    },
+    {
+      "case": "mixed_safe_M128_N16_K32",
+      "M": 128,
+      "N": 16,
+      "K": 32,
+      "count": 2048,
+      "canonical_sha256": "0d3c10cf0d9ac523b52235f1ef78416e9efd06532de259ed76aa64a63c9c0666"
+    },
+    {
+      "case": "mixed_safe_M128_N16_K64",
+      "M": 128,
+      "N": 16,
+      "K": 64,
+      "count": 4096,
+      "canonical_sha256": "a19a13b2257f5e12825380ed783e5b28e637d2d544b3473f6aca11cca03cf152"
+    },
+    {
+      "case": "mixed_safe_M128_N16_K5120",
+      "M": 128,
+      "N": 16,
+      "K": 5120,
+      "count": 327680,
+      "canonical_sha256": "d9b5703aed2b76f58d79bebabd048819cd0743aa458854f6384e9ca428c12f88"
+    },
+    {
+      "case": "mixed_safe_M128_N32_K32",
+      "M": 128,
+      "N": 32,
+      "K": 32,
+      "count": 4096,
+      "canonical_sha256": "8f9db6cef39b66835ad1bbf63238316ad74658d12bd3b3aa93d2809f6938c874"
+    },
+    {
+      "case": "mixed_safe_M128_N32_K64",
+      "M": 128,
+      "N": 32,
+      "K": 64,
+      "count": 8192,
+      "canonical_sha256": "b3411abe3b8f053af7248e3adb5f6113d89dbae24ba1bc0f25721dae625e64c6"
+    },
+    {
+      "case": "mixed_safe_M128_N32_K5120",
+      "M": 128,
+      "N": 32,
+      "K": 5120,
+      "count": 655360,
+      "canonical_sha256": "f3fb1d6b33a1ddc67b3dd73faef22e375fbe97162bf8896684e35b09215612b8"
+    },
+    {
+      "case": "mixed_safe_M128_N33_K32",
+      "M": 128,
+      "N": 33,
+      "K": 32,
+      "count": 4224,
+      "canonical_sha256": "6d710fdd8a8eac54d5f76f04991a56a82615e424921824e035fe9bedf5325411"
+    },
+    {
+      "case": "mixed_safe_M128_N33_K64",
+      "M": 128,
+      "N": 33,
+      "K": 64,
+      "count": 8448,
+      "canonical_sha256": "f5951311945108fa24490d6b94593de4170bc22ef2171c5561b6421229be36e3"
+    },
+    {
+      "case": "mixed_safe_M128_N33_K5120",
+      "M": 128,
+      "N": 33,
+      "K": 5120,
+      "count": 675840,
+      "canonical_sha256": "7a8568cd8c5f0de607cf4a58f6da333247dcd10bde3fe21809d1726b184d4cdd"
+    },
+    {
+      "case": "mixed_safe_M128_N48_K32",
+      "M": 128,
+      "N": 48,
+      "K": 32,
+      "count": 6144,
+      "canonical_sha256": "0ff35ba56b1f14961b62208ea3d47fdc86e4ae7b96427befbe38b686ee8ff3d9"
+    },
+    {
+      "case": "mixed_safe_M128_N48_K64",
+      "M": 128,
+      "N": 48,
+      "K": 64,
+      "count": 12288,
+      "canonical_sha256": "14c2a1b1474741288e0571be156e257a7e5394df2ab207acfc8d517910da990d"
+    },
+    {
+      "case": "mixed_safe_M128_N48_K5120",
+      "M": 128,
+      "N": 48,
+      "K": 5120,
+      "count": 983040,
+      "canonical_sha256": "c2ce489151b86baa5429b25ba1f82699181f4bb95e5cd6b47062d05b9a153478"
+    },
+    {
+      "case": "fixed_activation_scale_111_weight_scale_111",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "29f1644cd88b90ee18d8843f53d3f0b9700c01af002b37cc77cb3de3286ed608"
+    },
+    {
+      "case": "fixed_activation_scale_111_weight_scale_143",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "f54fe993d67c9048ff229733db18fea5365135c9917f1baa5a4930446bca1fa2"
+    },
+    {
+      "case": "fixed_activation_scale_143_weight_scale_111",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "f54fe993d67c9048ff229733db18fea5365135c9917f1baa5a4930446bca1fa2"
+    },
+    {
+      "case": "fixed_activation_scale_143_weight_scale_143",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "161892a5ed6300b8afd36363de5109d83d58e9e256036bde09cff88cb8c6cf88"
+    },
+    {
+      "case": "fixed_activation_scale_110_weight_scale_143",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "40cbd1b7b49993f09d58137ffebf4213e2e37b488091f6bf2a94d26087d423b8"
+    },
+    {
+      "case": "fixed_activation_scale_144_weight_scale_111",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "9e65b19b19f6c125618e80d00b575a9478ab0e37cb968d8297314d27800cb210"
+    },
+    {
+      "case": "fixed_activation_scale_143_weight_scale_110",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "40cbd1b7b49993f09d58137ffebf4213e2e37b488091f6bf2a94d26087d423b8"
+    },
+    {
+      "case": "fixed_activation_scale_111_weight_scale_144",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "9e65b19b19f6c125618e80d00b575a9478ab0e37cb968d8297314d27800cb210"
+    },
+    {
+      "case": "fixed_activation_scale_0_weight_scale_254",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "f54fe993d67c9048ff229733db18fea5365135c9917f1baa5a4930446bca1fa2"
+    },
+    {
+      "case": "fixed_activation_scale_254_weight_scale_0",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "e57cf514024ce92eb13368369cebd4a8958a33923db263a99598d32ab92e3ab7"
+    },
+    {
+      "case": "fixed_activation_scale_0_weight_scale_0",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "5ef6853436a68958c13fe433334813a747a7117a8ea7b7133ccfb88bc6662533"
+    },
+    {
+      "case": "fixed_activation_scale_254_weight_scale_254",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "511602e26ef025eed88b29905e944c5d50bf3d246cec5dca916fce192cc8a834"
+    },
+    {
+      "case": "separate_subtile_fallback_first_false",
+      "M": 31,
+      "N": 48,
+      "K": 64,
+      "count": 2976,
+      "canonical_sha256": "7812d9e7fc2fdf6167f6b6f86d6ce2be1343cdab844c11f75983db0bd6aa7fd6"
+    },
+    {
+      "case": "separate_subtile_fallback_first_true",
+      "M": 31,
+      "N": 48,
+      "K": 64,
+      "count": 2976,
+      "canonical_sha256": "9326d058beab59b57685a3a3162fd54650801d8ef4d0a5640389efff6690baca"
+    },
+    {
+      "case": "invalid_255_scale_activation_false",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "0e6ec92b9120710fffe6415bd8b6ad92da8eb7d7baef48ff7007cfb077594383"
+    },
+    {
+      "case": "invalid_255_scale_activation_true",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "5f677b53a7f03b6197542ad0c696f60ea0d14c98e4b44659a112e9d2e4c68f79"
+    },
+    {
+      "case": "negative_zero_inputs",
+      "M": 17,
+      "N": 33,
+      "K": 64,
+      "count": 1122,
+      "canonical_sha256": "eb865af0aa4f8352ed12bc25ba486ac02e03f72dc9a0d3ecd54a6911183c129a"
+    },
+    {
+      "case": "within_group_cancellation",
+      "M": 31,
+      "N": 48,
+      "K": 5120,
+      "count": 238080,
+      "canonical_sha256": "cf859f6321446e576d167e968f065403a9632ce67b3a182c13a4d3bb7a83b759"
+    },
+    {
+      "case": "NaN_activation_false_code_127_byte_0",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "NaN_activation_false_code_127_byte_1",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "4964053c254a7bb5ed356128b0588b7150fd46bfb0f89e5661f9a610de9a8562"
+    },
+    {
+      "case": "NaN_activation_false_code_127_byte_2",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "NaN_activation_false_code_127_byte_3",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "4205b392dde5ec4743976129d0a2494b2f978e993ed248ff82128288a78b5c05"
+    },
+    {
+      "case": "NaN_activation_false_code_255_byte_0",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "NaN_activation_false_code_255_byte_1",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "4964053c254a7bb5ed356128b0588b7150fd46bfb0f89e5661f9a610de9a8562"
+    },
+    {
+      "case": "NaN_activation_false_code_255_byte_2",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "NaN_activation_false_code_255_byte_3",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "4205b392dde5ec4743976129d0a2494b2f978e993ed248ff82128288a78b5c05"
+    },
+    {
+      "case": "NaN_activation_true_code_127_byte_0",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "NaN_activation_true_code_127_byte_1",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "db750c7c39dd33608340982c1899fa79a28dacaa7dddd12093d30e11845e8138"
+    },
+    {
+      "case": "NaN_activation_true_code_127_byte_2",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "1c1470c0076366a0a2f9f485548bc3d32d2edca6c8dbd5dd4fcceaa556798d14"
+    },
+    {
+      "case": "NaN_activation_true_code_127_byte_3",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "4e6c4d06959ef71e46d142481af6bcd1200c7736a5ef4540625820690efaf574"
+    },
+    {
+      "case": "NaN_activation_true_code_255_byte_0",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "33d2a222fe45383cb704f3e14dabc0e0752f3ccfcc64ba2871b6aa57364ec66b"
+    },
+    {
+      "case": "NaN_activation_true_code_255_byte_1",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "db750c7c39dd33608340982c1899fa79a28dacaa7dddd12093d30e11845e8138"
+    },
+    {
+      "case": "NaN_activation_true_code_255_byte_2",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "1c1470c0076366a0a2f9f485548bc3d32d2edca6c8dbd5dd4fcceaa556798d14"
+    },
+    {
+      "case": "NaN_activation_true_code_255_byte_3",
+      "M": 31,
+      "N": 33,
+      "K": 64,
+      "count": 2046,
+      "canonical_sha256": "4e6c4d06959ef71e46d142481af6bcd1200c7736a5ef4540625820690efaf574"
+    },
+    {
+      "case": "finite_F32_overflows_BF16",
+      "M": 17,
+      "N": 33,
+      "K": 32,
+      "count": 561,
+      "canonical_sha256": "1d3b59c9efcbd8e81d1337e630bc2ac74a9acf884b59038c0a0ff75fe131971f"
+    },
+    {
+      "case": "F32_overflow_then_next_group_recovery",
+      "M": 17,
+      "N": 33,
+      "K": 64,
+      "count": 1122,
+      "canonical_sha256": "6b2a5c39a527188dee682dd0b6ff30a30a3c4ace9a612904a3bb4e23dd60b0f2"
+    },
+    {
+      "case": "all_254_finite_activation_codes_basis",
+      "M": 128,
+      "N": 33,
+      "K": 64,
+      "count": 8448,
+      "canonical_sha256": "4054af307ad5b55e85a69910f120a91abdfb1c94172387ee052cae43f0682eb8"
+    },
+    {
+      "case": "all_254_finite_weight_codes_basis",
+      "M": 17,
+      "N": 48,
+      "K": 5120,
+      "count": 130560,
+      "canonical_sha256": "ecafa46c4afee1224f4bb2673aab8ded9defb13c049abf170994f9bc6de6929a"
+    },
+    {
+      "case": "all_finite_product_code_basis",
+      "M": 31,
+      "N": 33,
+      "K": 5120,
+      "count": 163680,
+      "canonical_sha256": "6f9d1e83a09e77ab4ee511c5a6cdf3bdc22fbe58ad9523bfe963d03e04ac56b4"
+    },
+    {
+      "case": "sticky_status_preserved",
+      "M": 17,
+      "N": 33,
+      "K": 64,
+      "count": 1122,
+      "canonical_sha256": "127634b58fd39f887940a2c256d7958ad395739cfaed63539c1193b251e37a49"
+    }
+  ]
+}

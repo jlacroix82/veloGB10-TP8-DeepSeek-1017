@@ -1,5 +1,5 @@
-//! TP-F — the fp32 all-reduce LAUNCH SCHEDULES (world 2: one exchange; world 4: two recursive-doubling
-//! rounds, TP-4B) over the doorbell transport
+//! TP-F — the fp32 all-reduce LAUNCH SCHEDULES (world 2/4/8: one/two/three recursive-doubling
+//! rounds for the serial reference) over the doorbell transport
 //! (native/tp_doorbell.h, kernels/gpu_batch.cu), shared by the EXL3 TP engine (exl3_forward/xtp.rs)
 //! and the transport bench (`--tp-reduce-bench`, tp_bench.rs) so the bench measures the served code.
 //!
@@ -13,6 +13,9 @@
 //! result is bitwise independent of the schedule, the chunking and the rail deal. At world > 2 the
 //! per-round adds telescope in a fixed tree whose association depends on the device-epoch phase
 //! (see `serial_model` in the tests); every rank ends bit-identical.
+//! The serial path does not require log2(world) to divide the ring size: K2(e) consumes its slot before
+//! the next local K1. The pipelined path has a different reuse proof and deliberately refuses world 8.
+//! CPU schedule/protocol coverage is not a substitute for the multi-node hardware qualification.
 
 use anyhow::{Context, Result};
 use cudarc::driver::{CudaDevice, CudaFunction, CudaSlice, CudaStream, DevicePtr, LaunchAsync, LaunchConfig};
@@ -38,12 +41,22 @@ pub const KERNEL_NAMES: [&str; 5] = ["tp_gate_copy_signal", "tp_wait_add", "tp_g
 impl Kernels {
     /// Load (once per module name) the five doorbell kernels from src/ptx/gpu_batch.ptx.
     pub fn load(dev: &Arc<CudaDevice>, module: &str) -> Result<Self> {
+        Self::load_with_recv(dev, module, false)
+    }
+
+    /// Select the serial receiver explicitly. The pipelined multi-block kernels retain their own
+    /// receive protocol; callers must not pair GPU-direct receive with the legacy pipelined executor.
+    /// Existing users of `load` keep the identical legacy K2 selection.
+    pub fn load_with_recv(dev: &Arc<CudaDevice>, module: &str, gpu_recv: bool) -> Result<Self> {
+        let k2_name = if gpu_recv { "tp_wait_add_g" } else { KERNEL_NAMES[1] };
         if dev.get_func(module, "tp_gate_copy_signal_mb").is_none() {
             let ptx = cudarc::nvrtc::Ptx::from_src(crate::ptx_embed::GPU_BATCH);
-            dev.load_ptx(ptx, module, &KERNEL_NAMES).context("load the TP doorbell kernels (gpu_batch.ptx)")?;
+            let mut names = KERNEL_NAMES.to_vec();
+            if gpu_recv { names.push(k2_name); }
+            dev.load_ptx(ptx, module, &names).context("load the TP doorbell kernels (gpu_batch.ptx)")?;
         }
         let f = |n: &str| dev.get_func(module, n).with_context(|| format!("doorbell kernel {n} missing"));
-        Ok(Kernels { k1: f(KERNEL_NAMES[0])?, k2: f(KERNEL_NAMES[1])?, k1m: f(KERNEL_NAMES[2])?, k2m: f(KERNEL_NAMES[3])?,
+        Ok(Kernels { k1: f(KERNEL_NAMES[0])?, k2: f(k2_name)?, k1m: f(KERNEL_NAMES[2])?, k2m: f(KERNEL_NAMES[3])?,
                      k2c: f(KERNEL_NAMES[4])? })
     }
 }
@@ -180,6 +193,9 @@ pub fn serial_plan(n: usize, rounds: usize) -> Vec<SerialPair> { serial_plan_of(
 /// (round k exchanges the round k-1 SUM with partner rank ^ (1 << (epoch % rounds)); K2 mode 2 adds in
 /// place, no rounding between rounds). A chunk consumes exactly `rounds` device epochs, so the round
 /// phase is invariant across reduces. rounds == 1 (world 2) is one pair per chunk, the TP-B..E launch.
+/// At world 8 this is three pairs per chunk, with no lookahead. Its receive slots are keyed by both
+/// epoch % rounds and epoch % RING_SLOTS; the same receive slot recurs after lcm(3, 8) = 24 epochs.
+/// The send ring still retires the actual QP that owned epoch e - RING_SLOTS before slot reuse.
 pub fn reduce_serial(k: &Kernels, stream: &CudaStream, ctx: u64, p: u64, n: usize, rounds: usize) -> Result<()> {
     anyhow::ensure!(rounds >= 1, "reduce_serial: rounds {rounds}");
     let c1 = LaunchConfig { grid_dim: (1, 1, 1), block_dim: (1024, 1, 1), shared_mem_bytes: 0 };
@@ -204,6 +220,17 @@ pub fn k2_serial(k: &Kernels, stream: &CudaStream, ctx: u64, p: u64, n: usize) -
     let c1 = LaunchConfig { grid_dim: (1, 1, 1), block_dim: (1024, 1, 1), shared_mem_bytes: 0 };
     anyhow::ensure!(n <= EPOCH_FLOATS, "k2_serial: one epoch only");
     unsafe { k.k2.clone().launch_on_stream(stream, c1, (ctx, p, p, n as i32, 2i32)) }.context("K2 launch")
+}
+
+/// Source-BF16 reference exchange. The caller sends n/2 raw32-bit words through
+/// k1_serial first and keeps every chunk a multiple of4BF16elements. Mode0 of
+/// the unchanged selected K2 widens both BF16 operands, adds inF32, then rounds
+/// back to BF16 on EACH round. This intentionally differs from reduce_serial.
+pub fn k2_serial_bf16(k: &Kernels, stream: &CudaStream, ctx: u64, p: u64, n: usize) -> Result<()> {
+    anyhow::ensure!(n > 0 && n % 4 == 0 && n <= EPOCH_FLOATS * 2,
+        "k2_serial_bf16 requires one padded8-byte-aligned BF16 epoch");
+    let c1 = LaunchConfig { grid_dim: (1, 1, 1), block_dim: (1024, 1, 1), shared_mem_bytes: 0 };
+    unsafe { k.k2.clone().launch_on_stream(stream, c1, (ctx, p, p, n as i32, 0i32)) }.context("BF16 mode0 K2 launch")
 }
 
 /// TP-4C: one K1 + K2 exchange of a DECODE-path logical reduce (the folded single-exchange path of TP-G,
@@ -1387,6 +1414,28 @@ mod tests {
         for r in 0..4 { assert_eq!(bits(&two[r]), bits(&want)); }
     }
 
+    /// TP8 needs all THREE exchanges. Reusing a two-round TP4 schedule leaves disjoint four-rank
+    /// sums, even though every exchange completed; checking only transport completion would miss it.
+    #[test]
+    fn serial_w8_three_rounds_are_required() {
+        let n = 148;
+        let parts = parts_for(8, n);
+        for e0 in 0..6u64 {
+            for per in [4usize, 28, n] {
+                let (out, e) = serial_model(8, e0, per, 3, &parts);
+                let want = bits(&tree_reference(8, e0, &parts));
+                assert_eq!(e, e0 + 3 * epochs_of(n, per).len() as u64);
+                assert_eq!(e % 3, e0 % 3, "TP8 round phase drifted");
+                for r in 0..8 { assert_eq!(bits(&out[r]), want, "e0 {e0} per {per} rank {r}"); }
+            }
+            // One whole chunk isolates the missing round from subsequent phase drift.
+            let (short, _) = serial_model(8, e0, n, 2, &parts);
+            let want = bits(&tree_reference(8, e0, &parts));
+            assert!(short.iter().any(|out| bits(out) != want), "two exchanges silently passed at e0 {e0}");
+            assert!(short.iter().any(|out| bits(out) != bits(&short[0])), "two exchanges falsely agreed across all ranks");
+        }
+    }
+
     /// The plan `reduce_serial` really launches: every chunk appears once per round, rounds consecutive,
     /// chunks tile [0, n) in order, each within one ring slot; the launch arguments address the chunk.
     #[test]
@@ -1410,16 +1459,16 @@ mod tests {
     }
 
     /// The plan the real loop iterates (production chunking, several chunks + a ragged tail), run through
-    /// the CPU schedule model at world 2 and 4 from an even and an odd start epoch: all ranks bit-identical,
+    /// the CPU schedule model at world 2, 4 and 8 from every round phase: all ranks bit-identical,
     /// equal to the tree reference, phase preserved. A regression that drops the per-chunk rounds in
     /// `serial_plan` fails here (the world-4 single-pair trap).
     #[test]
     fn real_serial_plan_reduces_correctly() {
         let n = 2 * EPOCH_FLOATS + 1012;
-        for world in [2usize, 4] {
+        for world in [2usize, 4, 8] {
             let rounds = rounds_of(world).unwrap();
             let parts = parts_for(world, n);
-            for e0 in [0u64, 1] {
+            for e0 in 0..rounds.max(2) as u64 {
                 let plan = serial_plan(n, rounds);
                 let (out, e) = serial_model_plan(world, e0, &plan, &parts);
                 assert_eq!(e, e0 + (rounds * epochs(n).len()) as u64);
@@ -1429,14 +1478,17 @@ mod tests {
         }
     }
 
-    /// The serial schedule's recv-slot safety at world 2 and 4, from the happens-before DAG: per rank the
+    /// The serial schedule's recv-slot safety at world 2, 4 and 8, from the happens-before DAG: per rank the
     /// stream order K1(e) -> K2(e) -> K1(e+1); K2(e) on rank r needs K1(e) of partner(e). A recv slot is
-    /// (round, e & (R-1)) at world > 2 (e & (R-1) at world 2), so epochs e and e - R share a slot; the
-    /// write of epoch e into rank r's slot (partner's K1(e)) must be ordered AFTER rank r's K2(e - R) read.
+    /// (round, e & (R-1)) at world > 2 (e & (R-1) at world 2), so its previous occupant is e - lcm(R, rounds)
+    /// (24 epochs earlier at TP8). The partner's K1(e) write must be ordered AFTER that occupant's K2 read.
     #[test]
     fn serial_schedule_recv_slot_safety() {
-        for world in [2usize, 4] {
+        fn gcd(a: usize, b: usize) -> usize { if b == 0 { a } else { gcd(b, a % b) } }
+        for world in [2usize, 4, 8] {
             let rounds = rounds_of(world).unwrap();
+            let reuse = (RING_SLOTS / gcd(RING_SLOTS, rounds) * rounds) as u64;
+            assert_eq!(reuse, if world == 8 { 24 } else { 8 });
             let last = 6 * RING_SLOTS as u64;
             let id = |r: usize, e: u64, k2: bool| ((e as usize) * world + r) * 2 + k2 as usize;
             let nodes = (last as usize + 1) * world * 2;
@@ -1460,12 +1512,12 @@ mod tests {
                 false
             };
             for r in 0..world {
-                for e in (RING_SLOTS as u64 + 1)..=last {
+                for e in (reuse + 1)..=last {
                     let writer = id(partner(r, e), e, false);
-                    let reader_prev = id(r, e - RING_SLOTS as u64, true);
+                    let reader_prev = id(r, e - reuse, true);
                     assert!(reaches(reader_prev, writer),
                             "world {world}: rank {r} epoch {e}: the slot write is not ordered after the read of epoch {}",
-                            e - RING_SLOTS as u64);
+                            e - reuse);
                 }
             }
         }
@@ -1791,12 +1843,29 @@ mod tests {
         }
     }
 
+    /// TP8 serial decode uses three exchanges with fp32 intermediate sums. Exercise every arm and
+    /// every epoch phase, including the repeated draft screen whose zero padding must survive.
+    #[test]
+    fn dec_arms_single_ops_w8() {
+        for e0 in [0u64, 1, 2, 24, 25, 26] {
+            for op in [Op::Mixer(256), Op::Moe(1024), Op::Vp(5), Op::Dh, Op::Prefill(EPOCH_FLOATS + 4)] {
+                let ops = if op == Op::Dh { vec![op, op] } else { vec![op] };
+                let (e, v) = run_ops(8, e0, &ops, &real_exch).unwrap_or_else(|m| panic!("e0 {e0} {op:?}: {m}"));
+                assert_eq!(v, ops.len());
+                let want = if matches!(op, Op::Prefill(_)) { 3 * epochs(EPOCH_FLOATS + 4).len() as u64 }
+                           else { 3 * ops.len() as u64 };
+                assert_eq!(e - e0, want, "{op:?}: TP8 needs three epochs per chunk or logical reduce");
+                assert_eq!(e % 3, e0 % 3);
+            }
+        }
+    }
+
     /// The decode spine's real interleaving: per layer a mixer reduce then an EP-MoE reduce (x40), then
     /// the draft passes' screens, the vp key merge, a prefill chunk reduce in the middle of it all — at
-    /// world 2 and 4, from aligned epochs.
+    /// world 2, 4 and 8, from aligned epochs.
     #[test]
     fn dec_arms_layer_stack_interleaving() {
-        for world in [2usize, 4] {
+        for world in [2usize, 4, 8] {
             let rounds = rounds_of(world).unwrap();
             let mut ops = Vec::new();
             for _ in 0..40 { ops.push(Op::Mixer(256)); ops.push(Op::Moe(512)); }
@@ -2429,6 +2498,107 @@ mod tests {
     }
 
     fn out_of(rk: &MRank, io: &Io, n: usize) -> Vec<u32> { rd_bits(&rk.regions, io.out, n, io.out_f16).unwrap() }
+
+    /// A receiver cannot conditionally clear a NIC-owned commit word: checking an old tag and
+    /// storing zero are separate operations. Enumerate every interleaving with NIC publication,
+    /// respecting the GPU's program order. The frozen old clear has one losing ordering; the
+    /// read-only exact-epoch waiter never erases a published tag and accepts no stale generation.
+    /// This models the discovered race; no historical hardware failure is attributed to it.
+    #[test]
+    fn gpu_tail_waiter_preserves_nic_commit_under_every_interleaving() {
+        // 0/1 are the GPU's ordered operations; 2 is the NIC publishing the fresh generation.
+        let orders: Vec<[usize; 3]> = (0..3).flat_map(|a| (0..3).flat_map(move |b| {
+            (0..3).filter_map(move |c| {
+                let order = [a, b, c];
+                (a != b && a != c && b != c && order.iter().position(|&v| v == 0).unwrap()
+                    < order.iter().position(|&v| v == 1).unwrap()).then_some(order)
+            })
+        })).collect();
+        assert_eq!(orders.len(), 3);
+        for (epoch, stale) in [(1u64, 0u64), (73, 49), (73, 25), (1u64 << 40, (1u64 << 40) - 24)] {
+            assert_ne!(stale, epoch);
+            let mut old_losses = Vec::new();
+            for order in &orders {
+                let (mut tail, mut saw_old) = (stale, false);
+                for &event in order {
+                    match event {
+                        0 => saw_old = tail != epoch,
+                        1 => if saw_old { tail = 0; },
+                        2 => tail = epoch,
+                        _ => unreachable!(),
+                    }
+                }
+                if tail != epoch { old_losses.push(*order); }
+
+                // New waiter: both GPU operations are observations, never stores. If publication
+                // follows both observations, a subsequent fair poll must see the unchanged tag.
+                let (mut tail, mut published) = (stale, false);
+                for &event in order {
+                    if event == 2 { tail = epoch; published = true; }
+                    else { assert_eq!(tail == epoch, published, "stale tag accepted before NIC publication"); }
+                }
+                assert_eq!(tail, epoch, "read-only waiter lost the commit: {order:?}");
+                assert!(published && tail == epoch, "the next poll must accept the fresh tag");
+            }
+            assert_eq!(old_losses, vec![[0, 2, 1]], "negative control must expose read-old / NIC-write / clear");
+        }
+        // Invalid epoch reuse is not made safe by clearing: tag==epoch skips the OLD conditional
+        // clear too. Initialization/unique epochs, rather than receive-side stores, establish this.
+        let seeded_epoch = 73u64;
+        let mut old_tail = seeded_epoch;
+        if old_tail != seeded_epoch { old_tail = 0; }
+        assert_eq!(old_tail, seeded_epoch);
+
+        // Bind the model to the actual served kernel, not just an independent toy implementation.
+        let source = include_str!("../kernels/gpu_batch.cu");
+        let body = source.split("extern \"C\" __global__ void tp_wait_add_g(").nth(1).unwrap()
+            .split("extern \"C\" __global__").next().unwrap();
+        assert!(!body.contains("*tw = 0ull"), "receiver-side clear reintroduced the modeled race");
+        assert!(body.contains("const unsigned long long* tail ="));
+        assert!(body.contains("while (tp_ld_relaxed(tail) != e)"));
+        assert!(body.contains("if (!s_timeout) tp_fence_acquire();"));
+    }
+
+    /// Feed the real serial plan to the asynchronous protocol model: one K1 then one K2, fp32 in
+    /// place, no lookahead. This exercises send retirement, per-QP delivery order, exact receive-slot
+    /// generations and reduction arithmetic together. At TP8 the ring/round periods differ (8 and 3),
+    /// so the test spans several 24-epoch receive-slot wraps, at every phase and with a large counter.
+    /// K1m/K2m model the byte/epoch protocol of the serial single-block kernels here; GPU execution,
+    /// system-scope fences and NIC visibility still require hardware tests.
+    #[test]
+    fn serial_program_model_handles_tp8_ring_wrap_and_delayed_peers() {
+        let world = 8usize;
+        let rounds = rounds_of(world).unwrap();
+        let (per, n) = (64usize, 41 * 64 + 16);
+        let plan = serial_plan_of(n, per, rounds);
+        assert!(plan.len() > 5 * 24, "test must cross several TP8 receive-slot wraps");
+        let io = Io::f32_inplace(SRC);
+        let prog: Vec<Step> = plan.iter().flat_map(|sp| {
+            let (p, bytes, len) = sp.args(SRC);
+            [Step::K1m { rail: 0, src: p, nbytes: bytes, bits: 0 },
+             Step::K2m { rail: 0, out: p, local: p, n: len, lag: 0, bits: 0 }]
+        }).collect();
+        let parts = model_parts(world, n, false);
+        let mut runs = 0usize;
+        for e0 in [0u64, 1, 2, 24 * 4096 + 2] {
+            let want = bits(&tree_reference(world, e0, &parts));
+            for mode in 0..4usize {
+                // All eight ranks are selected as the delayed rank across these seeds.
+                for seed in 0..8u64 {
+                    let regs = parts.iter().map(|p| regions_for(&io, n, p)).collect();
+                    let ctr = vec![vec![e0]; world];
+                    let result = simulate(world, &prog, regs, &ctr, 1, seed, mode, None)
+                        .unwrap_or_else(|m| panic!("e0 {e0} mode {mode} seed {seed}: {m}"));
+                    for (r, state) in result.iter().enumerate() {
+                        assert_eq!(out_of(state, &io, n), want, "e0 {e0} mode {mode} seed {seed} rank {r}");
+                        assert_eq!(state.ctr, vec![e0 + plan.len() as u64]);
+                    }
+                    runs += 1;
+                }
+            }
+        }
+        assert_eq!(runs, 128);
+    }
 
     /// THE matrix: world 2 and 4 (world 8 must be refused by the real clamp, W4P-1); every IO; 1 and 2 rails; lookahead 1..4 (clamped by the real rule); ragged
     /// chunkings down to one chunk; an even and a large start epoch (slot index and gate phase not at zero);

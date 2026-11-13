@@ -1077,6 +1077,123 @@ pub const TQ_ROTATE_SMEM_BYTES: u32 = 128 * 4;
 /// always Bf16 (the draft KV stays bf16 by decree — HY3_TURBOQUANT_KV_PLAN.md §6).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum KVCacheMode { Bf16, Q4, Tq, K8v4, K8v8 }
+
+/// One producer family owns an attention partial buffer. In particular, tensor-core
+/// segments must never be partly overwritten by scalar splits before the merge.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DecodeAttentionPlan { Scalar, TensorCoreChain, TensorCoreColumns }
+
+fn decode_attention_plan(kv: KVCacheMode, hd: usize, batch: usize, chain_ok: bool,
+                         path_ptr: u64, has_qsa: bool, disabled: bool) -> DecodeAttentionPlan {
+    if disabled || has_qsa || path_ptr != 0 || !matches!(kv, KVCacheMode::Bf16 | KVCacheMode::K8v8)
+        || !matches!(hd, 128 | 256) || !(1..=MAX_VERIFY).contains(&batch) {
+        DecodeAttentionPlan::Scalar
+    } else if chain_ok {
+        DecodeAttentionPlan::TensorCoreChain
+    } else if batch >= 2 {
+        // Each independent sequence gets the exact batch-1 kernel used when it runs alone.
+        DecodeAttentionPlan::TensorCoreColumns
+    } else {
+        DecodeAttentionPlan::Scalar
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct GveColumnOffsets {
+    partial_bytes: u64,
+    accumulator_bytes: u64,
+    query_bytes: u64,
+    index_bytes: u64,
+}
+
+/// Rebase one independent lane as a batch-1 GVE call. KV base pointers remain shared;
+/// the rebased slot_ids pointer selects that lane's physical cache slot in the kernel.
+fn gve_column_offsets(column: usize, nh: usize, segments: usize, hd: usize,
+                      q_pitch: usize) -> GveColumnOffsets {
+    let partials = column as u64 * nh as u64 * segments as u64;
+    GveColumnOffsets {
+        partial_bytes: partials * 4,
+        accumulator_bytes: partials * hd as u64 * 4,
+        query_bytes: column as u64 * q_pitch as u64 * 2,
+        index_bytes: column as u64 * 4,
+    }
+}
+
+fn bf16_gve_kernel(p3: bool) -> &'static str {
+    if p3 { "gqa_attn_verify_e_p3" } else { "gqa_attn_verify_e" }
+}
+
+#[cfg(test)]
+mod decode_attention_plan_tests {
+    use super::*;
+
+    #[test]
+    fn bf16_dispatch_has_one_producer_and_preserves_fallbacks() {
+        use DecodeAttentionPlan::*;
+        // A single enum drives the actual BF16 match: there is no second scalar
+        // producer after either tensor-core arm. Include the plain C1/C2/C4/C8
+        // calls and single-request verify, which has different slot semantics.
+        for kv in [KVCacheMode::Bf16, KVCacheMode::K8v8] {
+            for hd in [128, 256] {
+                assert_eq!(decode_attention_plan(kv, hd, 1, true, 0, false, false), TensorCoreChain);
+                for width in [2, 4, 8, MAX_VERIFY] {
+                    assert_eq!(decode_attention_plan(kv, hd, width, false, 0, false, false), TensorCoreColumns);
+                    assert_eq!(decode_attention_plan(kv, hd, width, true, 0, false, false), TensorCoreChain);
+                    assert_eq!(decode_attention_plan(kv, hd, width, false, 0, false, true), Scalar);
+                    assert_eq!(decode_attention_plan(kv, hd, width, true, 0, true, false), Scalar);
+                    assert_eq!(decode_attention_plan(kv, hd, width, true, 1, false, false), Scalar);
+                }
+                assert_eq!(decode_attention_plan(kv, hd, 1, false, 0, false, false), Scalar);
+                assert_eq!(decode_attention_plan(kv, hd, MAX_VERIFY + 1, true, 0, false, false), Scalar);
+            }
+        }
+        for kv in [KVCacheMode::Q4, KVCacheMode::Tq, KVCacheMode::K8v4] {
+            assert_eq!(decode_attention_plan(kv, 128, 1, true, 0, false, false), Scalar);
+            assert_eq!(decode_attention_plan(kv, 256, 8, false, 0, false, false), Scalar);
+        }
+        for hd in [64, 512] {
+            assert_eq!(decode_attention_plan(KVCacheMode::Bf16, hd, 2, false, 0, false, false), Scalar);
+        }
+    }
+
+    #[test]
+    fn column_rebasing_keeps_slot_position_query_and_partials_together() {
+        // This exercises the byte-offset helper used by the real launches with
+        // unrelated positions, permuted physical slots, and both packed/fused q
+        // pitches. A wrong scale, pitch, or missing pos/slot offset fails here.
+        assert_eq!(gve_column_offsets(1, 24, 48, 256, 6144), GveColumnOffsets {
+            partial_bytes: 4608, accumulator_bytes: 1179648,
+            query_bytes: 12288, index_bytes: 4,
+        });
+        for width in [2, 4, 8, MAX_VERIFY] {
+            for hd in [128, 256] {
+                let (nh, segments) = (24, 48);
+                for q_pitch in [nh * hd, 2 * nh * hd + 2 * 4 * hd] {
+                    let queries: Vec<u16> = (0..width * q_pitch).map(|i| (i / q_pitch + 1) as u16).collect();
+                    let positions: Vec<i32> = (0..width).map(|c| (173 + c * 37) as i32).collect();
+                    let slots: Vec<i32> = (0..width).map(|c| ((c * 5 + 3) % width) as i32).collect();
+                    let mut partial_owner = vec![None; width * nh * segments];
+                    for column in 0..width {
+                        let off = gve_column_offsets(column, nh, segments, hd, q_pitch);
+                        let index = off.index_bytes as usize / 4;
+                        assert_eq!((positions[index], slots[index]), (positions[column], slots[column]));
+                        let q = off.query_bytes as usize / 2;
+                        assert!(queries[q..q + q_pitch].iter().all(|&v| v == column as u16 + 1));
+                        let first = off.partial_bytes as usize / 4;
+                        for entry in &mut partial_owner[first..first + nh * segments] {
+                            assert_eq!(*entry, None, "two columns wrote one partial");
+                            *entry = Some(column);
+                        }
+                        assert_eq!(off.accumulator_bytes as usize / 4, first * hd);
+                        assert!((off.accumulator_bytes as usize / 4 + nh * segments * hd) <= width * nh * segments * hd);
+                    }
+                    assert!(partial_owner.iter().all(Option::is_some), "a column's partials were not written");
+                }
+            }
+        }
+    }
+}
+
 /// SM count of the GB10 (DGX Spark) — the "48-SM GPU" of the launch-geometry notes throughout.
 /// The persistent-grid serving GEMM (`gemm_mma_fp4_b`) sizes its grid from it.
 pub const GB10_SMS: usize = 48;
@@ -1853,10 +1970,148 @@ fn gdn_shard_factor_for(cfg: &Config, world: usize, mixers: bool) -> usize {
     }
 }
 
+/// The first eight-rank model path is the existing dense Qwen NVFP4/FP8 loader:
+/// eight-way FFN and GDN bands, whole attention tensors when their head counts
+/// cannot divide eight, and a replicated LM head. This validates shape support,
+/// not numerical equivalence or performance on eight devices. Call before any
+/// model upload and again at attach so neither load path can bypass it.
+///
+/// Keep MoE, hyper-connections/PLE, sparse attention and other architectures out
+/// until their own eight-rank ownership and serving gates are implemented.
+pub fn validate_tp8_config(cfg: &Config) -> anyhow::Result<()> {
+    anyhow::ensure!(cfg.family == crate::qwen::Family::Qwen35 && !cfg.is_moe
+        && cfg.hc_count == 1 && cfg.ple_layer.is_none() && cfg.indexer_n_heads == 0,
+        "experimental TP8 currently supports dense Qwen3.5/3.6/3.8 NVFP4 models only; \
+         MoE, PLE, sparse attention and other architectures require separate TP8 qualification");
+    anyhow::ensure!(cfg.hidden_size > 0 && cfg.hidden_size % 16 == 0 && cfg.num_layers > 0
+        && cfg.vocab_size > 0 && cfg.layer_types.len() == cfg.num_layers,
+        "experimental TP8: invalid dense model dimensions or layer-type count");
+    anyhow::ensure!(cfg.num_heads > 0 && cfg.num_kv_heads > 0
+        && cfg.num_heads % cfg.num_kv_heads == 0
+        && cfg.head_dim > 0 && cfg.head_dim % 32 == 0 && cfg.head_dim <= 512,
+        "experimental TP8: attention needs integral GQA groups and a supported head dimension");
+    anyhow::ensure!(cfg.intermediate_size > 0 && ffn_shard_factor_for(cfg, 8, false) == 8,
+        "experimental TP8: dense FFN intermediate {} does not form eight 32-aligned bands",
+        cfg.intermediate_size);
+    anyhow::ensure!(cfg.lin_num_k_heads > 0 && cfg.lin_num_v_heads > 0
+        && cfg.lin_k_dim >= 32 && cfg.lin_k_dim <= 256 && cfg.lin_k_dim.is_power_of_two()
+        && cfg.lin_v_dim > 0 && cfg.lin_v_dim <= 256 && cfg.lin_v_dim % GDN_C == 0
+        && cfg.conv_kernel > 0
+        && cfg.lin_num_v_heads % cfg.lin_num_k_heads == 0
+        && gdn_shard_factor_for(cfg, 8, true) == 8,
+        "experimental TP8: GDN key/value heads must form eight whole groups");
+    anyhow::ensure!(cfg.key_dim() % (16 * 8) == 0 && cfg.value_dim() % (32 * 8) == 0,
+        "experimental TP8: GDN projection bands are not quantization-tile aligned");
+    Ok(())
+}
+
+/// Only quantized weights have a shard-at-load implementation. A BF16 matrix
+/// at any of these sites would stay full-sized while runtime dimensions divide
+/// by eight. Reject it from headers, before constructing a CUDA context.
+fn validate_tp8_tensor_headers(cfg: &Config, headers: &serde_json::Map<String, serde_json::Value>)
+    -> anyhow::Result<()> {
+    let tensor = |name: &str, dtypes: &[&str], shapes: &[Vec<usize>]| -> anyhow::Result<()> {
+        let entry = headers.get(name).ok_or_else(|| anyhow::anyhow!(
+            "experimental TP8: missing required tensor {name}"))?;
+        let dtype = entry["dtype"].as_str().unwrap_or("");
+        let shape: Vec<usize> = serde_json::from_value(entry["shape"].clone())?;
+        anyhow::ensure!(dtypes.contains(&dtype) && shapes.contains(&shape),
+            "experimental TP8: {name} has {dtype} {shape:?}; expected dtype {dtypes:?}, shape {shapes:?}");
+        Ok(())
+    };
+    let quantized = |stem: &str, m: usize, k: usize| -> anyhow::Result<()> {
+        let packed = format!("{stem}.weight_packed");
+        let weight = format!("{stem}.weight");
+        anyhow::ensure!(!(headers.contains_key(&packed) && headers.contains_key(&weight)),
+            "experimental TP8: {stem} ambiguously contains packed and unpacked weights");
+        if headers.contains_key(&packed) {
+            tensor(&packed, &["U8"], &[vec![m, k / 2]])?;
+            tensor(&format!("{stem}.weight_scale"), &["F8_E4M3"], &[vec![m, k / 16]])?;
+            tensor(&format!("{stem}.weight_global_scale"), &["F32"], &[vec![1], vec![]])?;
+        } else {
+            tensor(&weight, &["F8_E4M3"], &[vec![m, k]])?;
+            let scale = format!("{stem}.weight_scale");
+            if headers.contains_key(&scale) {
+                tensor(&scale, &["F32", "BF16"], &[vec![m], vec![m, 1]])?;
+            } else {
+                anyhow::ensure!(m % 128 == 0 && k % 128 == 0,
+                    "experimental TP8: {stem} block-FP8 dimensions must be 128-aligned");
+                tensor(&format!("{stem}.weight_scale_inv"), &["BF16"], &[vec![m / 128, k / 128]])?;
+                // Block scales belong to complete 128-row/K bands. Check the
+                // actual loader's segment plan, including q/k/v in GDN qkv.
+                match qwen_load_shard_op_inner(&[weight], cfg, true, 8) {
+                    LoadShardOp::Col => anyhow::ensure!(m % (128 * 8) == 0,
+                        "experimental TP8: {stem} cannot form eight block-FP8 row bands"),
+                    LoadShardOp::ColSegs(segs) => {
+                        for (off, width, split) in segs {
+                            anyhow::ensure!(off % 128 == 0 && width % (128 * if split { 8 } else { 1 }) == 0,
+                                "experimental TP8: {stem} segment cannot form eight whole block-FP8 bands");
+                        }
+                    }
+                    LoadShardOp::Row => anyhow::ensure!(k % (128 * 8) == 0,
+                        "experimental TP8: {stem} cannot form eight block-FP8 K bands"),
+                    LoadShardOp::None => {}
+                }
+            }
+        }
+        Ok(())
+    };
+    let h = cfg.hidden_size;
+    for (layer, kind) in cfg.layer_types.iter().enumerate() {
+        let p = format!("model.language_model.layers.{layer}");
+        for part in ["gate_proj", "up_proj"] {
+            quantized(&format!("{p}.mlp.{part}"), cfg.intermediate_size, h)?;
+        }
+        quantized(&format!("{p}.mlp.down_proj"), h, cfg.intermediate_size)?;
+        if *kind == crate::qwen::LayerType::LinearAttention {
+            quantized(&format!("{p}.linear_attn.in_proj_qkv"), 2 * cfg.key_dim() + cfg.value_dim(), h)?;
+            quantized(&format!("{p}.linear_attn.in_proj_z"), cfg.value_dim(), h)?;
+            quantized(&format!("{p}.linear_attn.out_proj"), h, cfg.value_dim())?;
+        }
+    }
+    Ok(())
+}
+
+/// Row scales in mixed NVFP4/FP8 packs can be F32 [M] or BF16 [M,1]. Both
+/// represent w = fp8_code * scale; do not reinterpret BF16 pairs as one F32 or
+/// confuse these per-row scales with the separate block weight_scale_inv path.
+fn fp8_row_scales(dtype: safetensors::Dtype, shape: &[usize], bytes: &[u8], rows: usize)
+    -> anyhow::Result<Vec<f32>> {
+    use safetensors::Dtype;
+    anyhow::ensure!(shape == [rows] || shape == [rows, 1],
+        "FP8 weight_scale must have one scale per output row ({rows}), got {shape:?}");
+    match dtype {
+        Dtype::F32 => {
+            anyhow::ensure!(bytes.len() == rows * 4, "FP8 F32 row-scale byte count mismatch");
+            Ok(crate::podread::pod_vec::<f32>(bytes))
+        }
+        Dtype::BF16 => {
+            anyhow::ensure!(bytes.len() == rows * 2, "FP8 BF16 row-scale byte count mismatch");
+            Ok(crate::podread::pod_cow::<half::bf16>(bytes).iter().map(|v| v.to_f32()).collect())
+        }
+        _ => anyhow::bail!("FP8 weight_scale must be F32 or BF16, got {dtype:?}"),
+    }
+}
+
+/// (token pitch, b offset, a offset), in elements. Split b/a GEMMs retain the
+/// global head count even though each rank consumes only its local band. Fused
+/// views retain both complete b/a segments behind the rank-local qkv/z rows.
+fn gdn_ba_view(global_heads: usize, head0: usize, fused_m: Option<usize>) -> (usize, usize, usize) {
+    match fused_m {
+        Some(m) => (m, m - 2 * global_heads + head0, m - global_heads + head0),
+        None => (global_heads, head0, head0),
+    }
+}
+
 /// LM-head vocab-parallel factor (quantized heads only on the post-load path; the at-load hy_v3 E7
 /// bf16 head shard uses the same vocab divisibility). Gated on `mixers` like attention/GDN — the
 /// post-load path keeps the shipped `[tp-shard-mixers]` flag as the outer gate for LM-head.
 fn vocab_shard_factor_for(cfg: &Config, world: usize, mixers: bool) -> usize {
+    // TP8 first-light keeps the complete LM head on every rank. This avoids
+    // introducing a vocabulary collective before the plain trunk path has an
+    // eight-rank numerical gate. Both the loader and post-load sharder consult
+    // this predicate, so a shipped shard cannot disagree with runtime geometry.
+    if world == 8 { return 1; }
     if world > 1 && mixers && cfg.vocab_size % (16 * world) == 0 { world } else { 1 }
 }
 
@@ -2761,10 +3016,18 @@ impl GpuModel {
                      target model directory",
                 );
             }
+            if world == 8 {
+                let raw: serde_json::Value = serde_json::from_str(&cfg_txt)
+                    .map_err(|e| load_error("corrupted", &format!("config.json does not parse: {e}")))?;
+                crate::tp8::validate_model_type(&raw)?;
+            }
         }
         let cfg = crate::qwen::Config::from_config_json(&config_path)
             .map_err(|e| load_error("corrupted",
                 &format!("config.json is missing or does not parse: {e}")))?;
+        if world == 8 {
+            validate_tp8_config(&cfg)?;
+        }
         // The attention kernels take hd at launch but size per-lane register slices for hd/32 <= 16
         // (SK_DPL_MAX in gpu_batch.cu: qwen3.5 256, hy_v3 128, DeepSeek 512). Fail loudly on anything
         // outside that envelope rather than corrupting attention silently.
@@ -2908,6 +3171,20 @@ impl GpuModel {
         // Peak memory: one shard (~5 GB) + accumulated GPU weights (~55.6 GB) ≈ 61 GB.
         // hy_v3 keeps the transformer root at `model.*` (qwen3.5 nests it at `model.language_model.*`).
         let pref = if cfg.family == crate::qwen::Family::HyV3 { "model" } else { "model.language_model" };
+        if world == 8 {
+            let mut headers = serde_json::Map::new();
+            for path in &safetensors_files {
+                let header = shard_header(path)?;
+                let entries = header.as_object().ok_or_else(|| anyhow::anyhow!(
+                    "experimental TP8: {} has no tensor header object", path.display()))?;
+                for (name, meta) in entries {
+                    if name == "__metadata__" { continue; }
+                    anyhow::ensure!(headers.insert(name.clone(), meta.clone()).is_none(),
+                        "experimental TP8: duplicate tensor {name} across safetensors shards");
+                }
+            }
+            validate_tp8_tensor_headers(&cfg, &headers)?;
+        }
         let dev = CudaDevice::new(0)?;
         let stream = fork_blocking_stream(&dev);
         let blas = CudaBlas::new(dev.clone())?;
@@ -2998,7 +3275,7 @@ impl GpuModel {
         // correctness rung below it.
         //   NVFP4: {stem}.weight_packed [M,K/2] u8 + {stem}.weight_scale [M,K/16] e4m3
         //          + {stem}.weight_global_scale [1] f32
-        //   FP8:   {stem}.weight (F8_E4M3) [M,K]  + {stem}.weight_scale [M] f32
+        //   FP8:   {stem}.weight (F8_E4M3) [M,K] + {stem}.weight_scale [M] F32 / [M,1] BF16
         let mut n_dq4 = 0usize;
         let mut n_dq8 = 0usize;
         // Escape hatch: dequantize to bf16 at load. Same numbers, no speedup — useful to prove the
@@ -4374,7 +4651,7 @@ impl GpuModel {
 
             }
 
-            // --- FP8 tensors (dtype F8_E4M3 + an f32 row-scale sibling) ---
+            // --- FP8 tensors (dtype F8_E4M3 + a row-scale or block-scale sibling) ---
             let fp8: Vec<String> = st.names().iter()
                 .filter(|n| n.ends_with(".weight"))
                 .filter(|n| st.tensor(n).map(|t| t.dtype() == Dtype::F8_E4M3).unwrap_or(false))
@@ -4383,11 +4660,12 @@ impl GpuModel {
                 let stem = wname.trim_end_matches(".weight");
                 let wv = st.tensor(wname)?;
                 let (m, k) = (wv.shape()[0], wv.shape()[1]);
-                // Scale sibling: legacy per-row f32 `weight_scale` [M], or Qwen fine-grained
+                // Scale sibling: per-row F32/BF16 `weight_scale` [M]/[M,1], or Qwen fine-grained
                 // `weight_scale_inv` BF16 [M/128, K/128] — w = code·scale_inv per 128x128 block
                 // (direction verified numerically against the BF16 source: rel-L2 2.65e-2).
                 let (scales, nb_k) = if let Some(sv) = st.tensor(&format!("{}.weight_scale", stem)).ok() {
-                    (crate::podread::pod_vec::<f32>(sv.data()), 0usize)
+                    (fp8_row_scales(sv.dtype(), sv.shape(), sv.data(), m)
+                        .map_err(|e| load_error("wrong-format", &format!("{wname}: {e}")))?, 0usize)
                 } else {
                     let sv = st.tensor(&format!("{}.weight_scale_inv", stem))?;
                     assert_eq!(sv.dtype(), Dtype::BF16, "weight_scale_inv must be BF16: {}", wname);
@@ -4741,6 +5019,7 @@ impl GpuModel {
 
         // Mirror of attach_tp's rule: a QUANTIZED untied head was vocab-sharded at load.
         let mut lm_head_sharded_lc = sal.is_some()
+            && vocab_shard_factor_for(&cfg, world.max(1) as usize, true) > 1
             && matches!(lm_head, Some(W::Nvfp4 { .. }) | Some(W::Fp8 { .. }));
         // E7: vocab-parallel the BF16 head too — hy3's head is bf16 BY RECIPE (0.99 GB/rank/token
         // replicated ≈ 4.2 ms, the largest replicated read left). Rank r keeps vocab rows
@@ -7921,6 +8200,10 @@ impl GpuModel {
     /// Decode is weight-bandwidth-bound, so halving bytes-read is the win; the per-reduction all-reduce
     /// (`tp_all_reduce_bf16`) stitches the row-parallel partials back together.
     pub fn attach_tp(&mut self, rank: i32, world: i32, mut link: crate::net::TpLink) {
+        if world == 8 {
+            validate_tp8_config(&self.cfg).expect("experimental TP8 model configuration");
+            assert!((0..8).contains(&rank), "experimental TP8 rank {rank} is outside 0..8");
+        }
         self.tp_rank = rank;
         self.tp_world = world;
         if world > 1 {
@@ -10063,8 +10346,8 @@ impl GpuModel {
         // purely a launch bound: pc_b <= max_pc implies ns_b <= ns_grid, so every block a column needs
         // exists, and the surplus ones return immediately.
         // F8/C: tensor-core verify attention (the dspark ring_e pattern ported to the trunk
-        // GQA decode/verify). Gated to identity-path, single-slot, chain shapes; everything
-        // else (tree verify, multi-lane batch) stays on the scalar splitk, bit-identical.
+        // GQA decode/verify). Identity-path chains use one launch; independent BF16/K8v8
+        // lanes use rebased batch-1 launches. Tree/QSA/unsupported shapes stay scalar.
         let ratio_now = nh / nkv.max(1);
         // F9: the attention kernel choice is a property of the REQUEST, never of the verify
         // width. `batch * ratio_now <= 48` used to switch a wide verify (b>=9 at QG=6) onto the
@@ -10072,18 +10355,16 @@ impl GpuModel {
         // to MAX_VERIFY columns via a row-group grid dimension (grid.z = ceil(NQ/48)), so the
         // gate is the contract width.
         debug_assert_eq!(MAX_VERIFY, 16, "gpu_batch.cu GVE_MAX_VERIFY must match gpu.rs MAX_VERIFY");
-        let use_e = chain_ok && matches!(kv_mode, KVCacheMode::Bf16 | KVCacheMode::K8v8)
-            && (hd == 128 || hd == 256)
-            && batch >= 1 && batch <= MAX_VERIFY
-            && crate::opts::var(crate::opt!("no-attn-e")).is_err();
-        // k8v8 multi-lane: the `_e` tensor-core kernel addresses ONE slot for all its columns, so a call whose columns
+        let attention_plan = decode_attention_plan(kv_mode, hd, batch, chain_ok,
+            path_ptr, qsa_sel.is_some(), crate::opts::var(crate::opt!("no-attn-e")).is_ok());
+        let use_e = attention_plan == DecodeAttentionPlan::TensorCoreChain;
+        // bf16/k8v8 multi-lane: the `_e` tensor-core kernel addresses ONE slot for all its columns, so a call whose columns
         // are independent sequences (plain batched decode of several lanes) cannot be ONE `_e` launch. It CAN be one
         // batch-1 `_e` launch per column (pointer offsets, below): column j then runs the exact kernel and arithmetic
         // a lone request runs, so a lane's bytes never depend on how many other lanes are busy. Valid for identity-path
-        // calls only (a tree column attends through `path`, which `_e` does not read); those take the int8 split-K pair.
-        let use_e_cols = !use_e && kv_mode == KVCacheMode::K8v8 && path_ptr == 0 && qsa_sel.is_none()
-            && (hd == 128 || hd == 256) && batch >= 2 && batch <= MAX_VERIFY
-            && crate::opts::var(crate::opt!("no-attn-e")).is_err();
+        // calls only (a tree column attends through `path`, which `_e` does not read); those take
+        // the scalar split-K pair for their cache format.
+        let use_e_cols = attention_plan == DecodeAttentionPlan::TensorCoreColumns;
         let use_e_lane = use_e || use_e_cols;   // partials in the `_e` layout (ns_grid == SEG), reduced by gqa_attn_reduce_e
         if crate::opts::var(crate::opt!("attn-e-debug")).is_ok() {
             eprintln!("[attn_e] chain_ok={chain_ok} kv={:?} hd={hd} batch={batch} ratio={ratio_now} max_pc={max_pc} use_e={use_e} use_e_cols={use_e_cols}", kv_mode);
@@ -10208,17 +10489,34 @@ impl GpuModel {
             // F8/C: the tensor-core lane (ring_e pattern; see gqa_attn_verify_e). Runs both
             // matmuls on mma.sync bf16 with Q row-fragments persistent in registers; partials
             // land in the splitk layout and the _e reduce merges them (SEG == ns_grid).
-            if use_e {
+            match attention_plan {
+            DecodeAttentionPlan::TensorCoreChain | DecodeAttentionPlan::TensorCoreColumns => {
                 // p3 (round-23): oracle-validated restructure, +18% at 30K-class ctx; A/B knob
                 // until it earns standing-config (diagnostics-class env per §7; promote to CLI
                 // flag with the fp8-KV integration).
                 static ATTN_P3: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
                 let attn_p3 = *ATTN_P3.get_or_init(|| crate::opts::var(crate::opt!("attn-p3")).is_ok());
-                let kname = if attn_p3 { "gqa_attn_verify_e_p3" } else { "gqa_attn_verify_e" };
+                let kname = bf16_gve_kernel(attn_p3);
+                if use_e {
                 blaunch!(self, kname, (nkv as u32, seg_e as u32, rg_e as u32), (192,1,1), 0,
                     (d(&pm), d(&pl), d(&pa), d(q), kc_ptr, vc_ptr,
                      logical_ptr, bs_packed, nh_packed, slot_ids_ptr, col_pos_start_ptr));
+                } else {
+                    let bs1 = pack_bs(stride, ns_grid, 1, q_pitch);
+                    for column in 0..batch {
+                        let off = gve_column_offsets(column, nh, ns_grid, hd, q_pitch);
+                        // Both BF16 GVE entry points explicitly ignore col_pos_start. They read
+                        // one physical slot and identity key positions; the plan excludes tree
+                        // remapping and QSA. Rebase q/pos/slot/partials together for this lane.
+                        blaunch!(self, kname, (nkv as u32, seg_e as u32, 1u32), (192,1,1), 0,
+                            (d(&pm) + off.partial_bytes, d(&pl) + off.partial_bytes,
+                             d(&pa) + off.accumulator_bytes, d(q) + off.query_bytes,
+                             kc_ptr, vc_ptr, logical_ptr + off.index_bytes, bs1, nh_packed,
+                             slot_ids_ptr + off.index_bytes, 0u64));
+                    }
+                }
             }
+            DecodeAttentionPlan::Scalar => {
             // GQA-packed bf16 split-K (E1c): same re-read pathology as q4 — the per-head kernel
             // reads each group's KV chunk gqa_ratio times (the bf16 "32K anomaly"). Packed reads it
             // ONCE per (kvh, split); per-head bit-identical. hd in {128,256} && ratio 2..=8.
@@ -10236,6 +10534,8 @@ impl GpuModel {
             blaunch!(self, "gqa_attn_splitk", ((batch * nh * ns_grid) as u32,1,1), (hd as u32,1,1), smem,
                 (d(&pm), d(&pl), d(&pa), d(q), kc_ptr, vc_ptr,
                  logical_ptr, bs_packed, nh_packed, slot_ids_ptr, path_ptr, col_pos_start_ptr));
+            }
+            }
             }
         }
         }
@@ -10585,8 +10885,17 @@ impl GpuModel {
                 qkv = Some(qkvb); z = Some(zb); b = Some(bb); a = Some(ab);
             }
         }
-        // qkv/z/b/a row geometry: packed (conv_dim / nh*vd / nh) or fused views (mtot + segment offs).
-        let (qkv_stride, ba_stride): (usize, usize) = if fused_qkv.is_some() { (mtot, mtot) } else { (conv_dim, nh) };
+        // qkv/z rows are local; split b/a rows are still the full global head
+        // count. Using local nh as their token pitch reads token 0's next head
+        // band in place of token 1's arguments once batch > 1.
+        let qkv_stride = if fused_qkv.is_some() { mtot } else { conv_dim };
+        // The diagnostic split_gdn_b arm has ALREADY packed b/a to local
+        // heads. Only genuine Split projection GEMMs and fused views retain
+        // full head segments and need the rank's global head offset.
+        let ba_replicated = fused_qkv.is_some() || matches!(&la.in_proj, GdnIn::Split { .. });
+        let (ba_stride, b_off, a_off) = gdn_ba_view(
+            if ba_replicated { nh_src } else { nh }, if ba_replicated { h0 } else { 0 },
+            fused_qkv.as_ref().map(|_| mtot));
         let (qkv_ptr, z_ptr): (u64, u64) = match &fused_qkv {
             Some(f) => (d(f), d(f)),
             None => (d(qkv.as_ref().expect("qkv")), d(z.as_ref().expect("z"))),
@@ -10594,12 +10903,11 @@ impl GpuModel {
         let (z_off, z_stride): (usize, usize) = if fused_qkv.is_some() { (conv_dim, mtot) } else { (0, nh*vd) };
         // b/a pointers: packed buffers, or the fused views pre-offset past [qkv|z] plus h0.
         let (b_ptr, a_ptr): (u64, u64) = match &fused_qkv {
-            Some(f) => (d(f) + ((conv_dim + value_dim + h0) as u64) * 2,
-                        d(f) + ((conv_dim + value_dim + nh_src + h0) as u64) * 2),
+            Some(f) => (d(f) + b_off as u64 * 2, d(f) + a_off as u64 * 2),
             // Split path: b/a are replicated-full — offset to THIS rank's head band (one row
             // per head, bf16). world==1 → rank 0 → offset 0, byte-identical to before.
-            None => (d(b.as_ref().expect("b")) + (self.tp_rank as usize * nh * 2) as u64,
-                     d(a.as_ref().expect("a")) + (self.tp_rank as usize * nh * 2) as u64),
+            None => (d(b.as_ref().expect("b")) + b_off as u64 * 2,
+                     d(a.as_ref().expect("a")) + a_off as u64 * 2),
         };
         blaunch!(self, "conv1d_b", grid(batch*conv_dim), (256,1,1), 0, (qkv_ptr, conv_ptr, d(&la.conv1d), conv_dim as i32, ck as i32, batch as i32, slot_ids_ptr, qkv_stride as i32));
         // NEGATIVE CONTROL (--tp-head-proof-fault=1): deliberately launch the state kernel at the
@@ -22709,6 +23017,221 @@ mod shard_factor_tests {
         assert_eq!(experts_shard_factor_for(&c, 16, false), 1, "experts mixers off");
         assert_eq!(vocab_shard_factor_for(&c, 16, false), 1, "vocab mixers off");
         assert_eq!(ffn_shard_factor_for(&c, 8, false), 8, "ffn independent of mixers");
+    }
+
+    fn dense_tp8_cfg() -> Config {
+        // Geometry of the first bring-up artifact, Qwen3.8-27B NVFP4.
+        let mut c = cfg(17408, 24, 4, 16, 48, 248320, 0, 0);
+        c.head_dim = 256;
+        c.tie_word_embeddings = false;
+        c.layer_types = (0..c.num_layers).map(|i| if i % 4 == 3 {
+            crate::qwen::LayerType::FullAttention
+        } else { crate::qwen::LayerType::LinearAttention }).collect();
+        c
+    }
+
+    #[test]
+    fn tp8_dense_plan_preserves_complete_attention_and_head() {
+        let c = dense_tp8_cfg();
+        validate_tp8_config(&c).unwrap();
+        assert_eq!(ffn_shard_factor_for(&c, 8, true), 8);
+        assert_eq!(gdn_shard_factor_for(&c, 8, true), 8);
+        assert_eq!(attn_shard_factor_for(&c, 8, true), 1);
+        assert_eq!(vocab_shard_factor_for(&c, 8, true), 1);
+        // Preserve the shipped two/four-rank rules, including their LM head.
+        for world in [2, 4] {
+            assert_eq!(ffn_shard_factor_for(&c, world, true), world);
+            assert_eq!(gdn_shard_factor_for(&c, world, true), world);
+            assert_eq!(attn_shard_factor_for(&c, world, true), world);
+            assert_eq!(vocab_shard_factor_for(&c, world, true), world);
+        }
+    }
+
+    #[test]
+    fn tp8_headers_reject_unsharded_bf16_trunk_and_wrong_shapes() {
+        let mut c = dense_tp8_cfg();
+        c.num_layers = 2;
+        c.layer_types = vec![crate::qwen::LayerType::LinearAttention, crate::qwen::LayerType::FullAttention];
+        let mut headers = serde_json::Map::new();
+        let mut add = |name: String, dtype: &str, shape: Vec<usize>| {
+            headers.insert(name, serde_json::json!({"dtype": dtype, "shape": shape}));
+        };
+        for layer in 0..c.num_layers {
+            let p = format!("model.language_model.layers.{layer}");
+            for (part, m, k) in [("gate_proj", c.intermediate_size, c.hidden_size),
+                                 ("up_proj", c.intermediate_size, c.hidden_size),
+                                 ("down_proj", c.hidden_size, c.intermediate_size)] {
+                let stem = format!("{p}.mlp.{part}");
+                add(format!("{stem}.weight_packed"), "U8", vec![m, k / 2]);
+                add(format!("{stem}.weight_scale"), "F8_E4M3", vec![m, k / 16]);
+                add(format!("{stem}.weight_global_scale"), "F32", vec![1]);
+            }
+            if c.layer_types[layer] == crate::qwen::LayerType::LinearAttention {
+                for (part, m, k) in [("in_proj_qkv", 2 * c.key_dim() + c.value_dim(), c.hidden_size),
+                                     ("in_proj_z", c.value_dim(), c.hidden_size),
+                                     ("out_proj", c.hidden_size, c.value_dim())] {
+                    let stem = format!("{p}.linear_attn.{part}");
+                    add(format!("{stem}.weight"), "F8_E4M3", vec![m, k]);
+                    add(format!("{stem}.weight_scale"), "BF16", vec![m, 1]);
+                }
+            }
+        }
+        assert!(validate_tp8_tensor_headers(&c, &headers).is_ok());
+        let mut bf16 = headers.clone();
+        let stem = "model.language_model.layers.0.mlp.gate_proj";
+        bf16.remove(&format!("{stem}.weight_packed"));
+        bf16.insert(format!("{stem}.weight"), serde_json::json!({
+            "dtype": "BF16", "shape": [c.intermediate_size, c.hidden_size]}));
+        assert!(validate_tp8_tensor_headers(&c, &bf16).is_err());
+        let mut wrong = headers.clone();
+        wrong["model.language_model.layers.0.linear_attn.in_proj_z.weight_scale"]["shape"] =
+            serde_json::json!([c.value_dim() / 2, 2]);
+        assert!(validate_tp8_tensor_headers(&c, &wrong).is_err());
+        let mut wrong = headers.clone();
+        wrong["model.language_model.layers.0.linear_attn.out_proj.weight"]["shape"] =
+            serde_json::json!([c.hidden_size, c.value_dim() + 16]);
+        assert!(validate_tp8_tensor_headers(&c, &wrong).is_err());
+        let mut missing = headers.clone();
+        missing.remove("model.language_model.layers.0.linear_attn.in_proj_qkv.weight");
+        assert!(validate_tp8_tensor_headers(&c, &missing).is_err());
+        let mut ambiguous = headers;
+        ambiguous.insert(format!("{stem}.weight"), serde_json::json!({
+            "dtype": "F8_E4M3", "shape": [c.intermediate_size, c.hidden_size]}));
+        assert!(validate_tp8_tensor_headers(&c, &ambiguous).is_err());
+    }
+
+    #[test]
+    fn tp8_load_maps_cover_bands_once_without_slicing_replicated_tensors() {
+        let c = dense_tp8_cfg();
+        let op = |names: &[&str]| qwen_load_shard_op_inner(
+            &names.iter().map(|s| s.to_string()).collect::<Vec<_>>(), &c, true, 8);
+        assert!(matches!(op(&["lm_head.weight"]), LoadShardOp::None));
+        assert!(matches!(op(&["model.language_model.embed_tokens.weight"]), LoadShardOp::None));
+        assert!(matches!(op(&["model.layers.3.self_attn.q_proj.weight", "model.layers.3.self_attn.k_proj.weight",
+                              "model.layers.3.self_attn.v_proj.weight"]), LoadShardOp::None));
+        assert!(matches!(op(&["model.layers.3.self_attn.o_proj.weight"]), LoadShardOp::None));
+        assert!(matches!(op(&["model.layers.0.mlp.gate_proj.weight"]), LoadShardOp::Col));
+        assert!(matches!(op(&["model.layers.0.mlp.down_proj.weight"]), LoadShardOp::Row));
+        assert!(matches!(op(&["model.layers.0.linear_attn.out_proj.weight"]), LoadShardOp::Row));
+        assert!(matches!(op(&["mtp.fc.weight"]), LoadShardOp::None));
+        let LoadShardOp::ColSegs(segments) = op(&[
+            "model.layers.0.linear_attn.in_proj_qkv.weight", "model.layers.0.linear_attn.in_proj_z.weight",
+            "model.layers.0.linear_attn.in_proj_b.weight", "model.layers.0.linear_attn.in_proj_a.weight",
+        ]) else { panic!("GDN input must retain its segmented load map"); };
+        assert_eq!(segments.len(), 6);
+        for (offset, width, split) in segments {
+            if split {
+                assert_eq!(width % (8 * 16), 0);
+                let mut covered = Vec::new();
+                for rank in 0..8 {
+                    let (start, len) = col_band(width, rank, 8);
+                    covered.extend(offset + start..offset + start + len);
+                }
+                assert_eq!(covered, (offset..offset + width).collect::<Vec<_>>());
+            } else {
+                // The small b/a projections stay whole at every rank. Their
+                // outputs are indexed by the rank's local value-head band.
+                assert_eq!(width, c.lin_num_v_heads);
+            }
+        }
+    }
+
+    #[test]
+    fn fp8_row_scales_preserve_bf16_values_and_shard_ownership() {
+        use safetensors::Dtype;
+        let (rows, k, world) = (128, 32, 8);
+        let src: Vec<half::bf16> = (0..rows).map(|i| half::bf16::from_f32((i + 1) as f32 / 256.0)).collect();
+        let expected: Vec<f32> = src.iter().map(|v| v.to_f32()).collect();
+        // A safetensors payload need not be aligned for either BF16 or F32.
+        let mut payload = vec![0xEF];
+        payload.extend_from_slice(bytemuck::cast_slice(&src));
+        let scales = fp8_row_scales(Dtype::BF16, &[rows, 1], &payload[1..], rows).unwrap();
+        assert_eq!(scales, expected);
+        let codes: Vec<u8> = (0..rows).flat_map(|i| std::iter::repeat(i as u8).take(k)).collect();
+        let mut reconstructed = Vec::new();
+        for rank in 0..world {
+            let (q, s, m, sk) = shard_raw_fp8(&codes, &scales, rows, k, &LoadShardOp::Col, rank, world);
+            assert_eq!((m, sk), (rows / world, k));
+            for local_row in 0..m {
+                let global_row = rank * m + local_row;
+                assert_eq!(q[local_row * k], global_row as u8);
+                assert_eq!(s[local_row], expected[global_row]);
+            }
+            reconstructed.extend(s);
+        }
+        assert_eq!(reconstructed, expected);
+        assert_eq!(fp8_row_scales(Dtype::F32, &[rows], bytemuck::cast_slice(&expected), rows).unwrap(), expected);
+        assert!(fp8_row_scales(Dtype::BF16, &[rows / 2, 2], &payload[1..], rows).is_err());
+        assert!(fp8_row_scales(Dtype::F32, &[rows], &payload[1..], rows).is_err());
+        assert!(fp8_row_scales(Dtype::U16, &[rows], &payload[1..], rows).is_err());
+    }
+
+    #[test]
+    fn gdn_ba_views_keep_tokens_and_head_bands_associated() {
+        let c = dense_tp8_cfg();
+        let (heads, batch) = (c.lin_num_v_heads, 3);
+        let beta = |token: usize, head: usize| (token * 1000 + head) as i32;
+        let alpha = |token: usize, head: usize| -(token as i32 * 1000 + head as i32 + 1);
+        let split_b: Vec<_> = (0..batch).flat_map(|t| (0..heads).map(move |h| beta(t, h))).collect();
+        let split_a: Vec<_> = (0..batch).flat_map(|t| (0..heads).map(move |h| alpha(t, h))).collect();
+        for world in [1, 2, 4, 8] {
+            for mixers in [false, true] {
+                let factor = gdn_shard_factor_for(&c, world, mixers);
+                let local_heads = heads / factor;
+                let local_prefix = (2 * c.key_dim() + 2 * c.value_dim()) / factor;
+                let fused_m = local_prefix + 2 * heads;
+                let mut fused = vec![i32::MIN; fused_m * batch];
+                for t in 0..batch {
+                    for h in 0..heads {
+                        fused[t * fused_m + local_prefix + h] = beta(t, h);
+                        fused[t * fused_m + local_prefix + heads + h] = alpha(t, h);
+                    }
+                }
+                for rank in 0..world {
+                    let head0 = if factor > 1 { rank * local_heads } else { 0 };
+                    let local_b: Vec<_> = (0..batch).flat_map(|t| (0..local_heads).map(move |h| beta(t, head0 + h))).collect();
+                    let local_a: Vec<_> = (0..batch).flat_map(|t| (0..local_heads).map(move |h| alpha(t, head0 + h))).collect();
+                    for (layout, stored_heads, stored_head0, fused_width, b, a) in [
+                        ("split projections", heads, head0, None, &split_b, &split_a),
+                        ("fused views", heads, head0, Some(fused_m), &fused, &fused),
+                        ("packed local", local_heads, 0, None, &local_b, &local_a),
+                    ] {
+                        let (pitch, b_off, a_off) = gdn_ba_view(stored_heads, stored_head0, fused_width);
+                        for t in 0..batch {
+                            for h in 0..local_heads {
+                                assert_eq!(b[b_off + t * pitch + h], beta(t, head0 + h),
+                                    "beta token/head association: world {world}, rank {rank}, {layout}");
+                                assert_eq!(a[a_off + t * pitch + h], alpha(t, head0 + h),
+                                    "alpha token/head association: world {world}, rank {rank}, {layout}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn tp8_refuses_unqualified_architectures_and_misaligned_bands() {
+        let c = dense_tp8_cfg();
+        for family in [crate::qwen::Family::HyV3, crate::qwen::Family::Dsv4, crate::qwen::Family::Qwen4Exp] {
+            let mut other = c.clone(); other.family = family;
+            assert!(validate_tp8_config(&other).is_err());
+        }
+        let mut bad = c.clone(); bad.is_moe = true;
+        assert!(validate_tp8_config(&bad).is_err());
+        let mut bad = c.clone(); bad.ple_layer = Some(1);
+        assert!(validate_tp8_config(&bad).is_err());
+        let mut bad = c.clone(); bad.intermediate_size += 16;
+        assert!(validate_tp8_config(&bad).is_err());
+        let mut bad = c.clone(); bad.lin_num_k_heads = 15;
+        assert!(validate_tp8_config(&bad).is_err());
+        let mut bad = c.clone(); bad.lin_v_dim = 24;
+        assert!(validate_tp8_config(&bad).is_err());
+        let mut bad = c.clone(); bad.num_kv_heads = 5;
+        assert!(validate_tp8_config(&bad).is_err());
+        let mut bad = c.clone(); bad.layer_types.pop();
+        assert!(validate_tp8_config(&bad).is_err());
     }
 }
 

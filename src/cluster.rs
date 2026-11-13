@@ -684,8 +684,9 @@ fn peek_frame(b: &[u8]) -> PeekFrame {
 /// is a plain accept() with no deadline, before any liveness probe exists) and — on the served path —
 /// while it loads its own shard, watch every node's retained control stream WITHOUT consuming it
 /// (MSG_PEEK). A node that reports a failure (`node_report_failure`) or closes the stream (its session
-/// process exited) has abandoned the session: print the node's reason and exit the head non-zero
-/// within ~0.1 s. Legitimate traffic (the node's `Ready`) ends the watch for that stream, untouched.
+/// process exited) has abandoned the session: print the node's reason and exit the head non-zero.
+/// Each still-silent peer can take up to 100 ms per sweep (up to 700 ms at TP8). Legitimate traffic
+/// (the node's `Ready`) ends the watch for that stream, untouched.
 /// `disarm` stops the watch and restores the streams' blocking reads BEFORE the head reads them.
 pub struct NodeWatch {
     stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -1021,6 +1022,8 @@ fn assign_ranks(nodes: &mut Vec<NodeInfo>, ifaces: &[Roce]) {
 /// sorted by `assign_ranks` (ranks 1..N-1 in order). `topology[self_rank]` is the rank's own IP and
 /// is unused by the N-way transport.
 fn build_topology(ranked_nodes: &[NodeInfo], ifaces: &[Roce], world: u32) -> Result<Vec<String>> {
+    anyhow::ensure!(world >= 2 && world.is_power_of_two(),
+        "build_topology: TP world {world} must be a power of two >= 2");
     anyhow::ensure!(
         ranked_nodes.len() as u32 == world.saturating_sub(1),
         "build_topology: got {} nodes for world {world} (need {})",
@@ -1033,9 +1036,16 @@ fn build_topology(ranked_nodes: &[NodeInfo], ifaces: &[Roce], world: u32) -> Res
     let head_ip = ifaces.iter().find(|f| f.rail == 1).map(|f| f.ip)
         .or_else(|| ifaces.first().map(|f| f.ip))
         .context("no RoCE interface resolved — cannot build the rank->IP topology")?;
+    // The data plane identifies a peer by its IP, not the sync TCP port. Two
+    // explicit --nodes entries for one address would otherwise ship different
+    // ranks before those ranks tried to bring up the same RoCE topology.
+    let mut seen = std::collections::HashSet::from([IpAddr::V4(head_ip)]);
     topo[0] = head_ip.to_string();
     for (i, node) in ranked_nodes.iter().enumerate() {
         let rank = (i + 1) as usize;
+        anyhow::ensure!(seen.insert(node.addr.ip()),
+            "build_topology: rank {rank} repeats the head or another peer's IP {} — every TP rank needs a distinct RoCE address",
+            node.addr.ip());
         topo[rank] = node.addr.ip().to_string();
     }
     Ok(topo)
@@ -1911,6 +1921,55 @@ mod tests {
     }
 
     #[test]
+    fn topology_eight_ranks_is_complete_and_discovery_order_independent() {
+        let ifaces = rails();
+        let mut nodes: Vec<_> = (2..=8).rev()
+            .map(|last| node(&format!("peer-{last}"), &format!("192.0.2.{last}"), 29500))
+            .collect();
+        assign_ranks(&mut nodes, &ifaces);
+        let topology = build_topology(&nodes, &ifaces, 8).unwrap();
+        assert_eq!(topology, (1..=8).map(|last| format!("192.0.2.{last}")).collect::<Vec<_>>());
+        assert_eq!(nodes[6].hostname, "peer-8", "rank seven must not be omitted");
+        nodes.rotate_left(3);
+        assign_ranks(&mut nodes, &ifaces);
+        assert_eq!(build_topology(&nodes, &ifaces, 8).unwrap(), topology);
+
+        let short = build_topology(&nodes[..6], &ifaces, 8).unwrap_err().to_string();
+        assert!(short.contains("need 7"), "{short}");
+    }
+
+    #[test]
+    fn topology_rejects_invalid_world_and_duplicate_rank_addresses() {
+        let ifaces = rails();
+        assert!(build_topology(&[], &ifaces, 0).unwrap_err().to_string().contains("power of two"));
+        assert!(build_topology(&[], &ifaces, 3).unwrap_err().to_string().contains("power of two"));
+        let self_peer = [node("self", "192.0.2.1", 29500)];
+        assert!(build_topology(&self_peer, &ifaces, 2).unwrap_err().to_string().contains("repeats"));
+        let duplicate = [
+            node("first", "192.0.2.2", 29500),
+            node("second", "192.0.2.3", 29500),
+            node("same-host-other-port", "192.0.2.2", 29501),
+        ];
+        assert!(build_topology(&duplicate, &ifaces, 4).unwrap_err().to_string().contains("repeats"));
+    }
+
+    #[test]
+    fn manifest_eight_ranks_never_ships_another_ranks_directory() {
+        let mut logicals = vec!["config.json".to_string(), "inference/config.json".to_string()];
+        for rank in 0..8 {
+            logicals.push(format!("rank{rank}/weights.safetensors"));
+            logicals.push(format!("rank{rank}/dspark_stage0.safetensors"));
+        }
+        for rank in 1..8 {
+            let got: Vec<_> = logicals.iter().filter(|name| include_for_rank(name, rank, true)).cloned().collect();
+            assert_eq!(got, vec![
+                "config.json".to_string(), "inference/config.json".to_string(),
+                format!("rank{rank}/weights.safetensors"), format!("rank{rank}/dspark_stage0.safetensors"),
+            ], "rank {rank} must receive its own shard and the shared configuration only");
+        }
+    }
+
+    #[test]
     fn manifest_filtering_per_rank_and_world2_identity() {
         // Logical paths exactly as model_files() would emit relative to the model dir.
         let logicals = vec![
@@ -2144,6 +2203,71 @@ mod pack_manifest_tests {
         w.disarm(&streams);
         assert_eq!(streams[0].read_timeout().unwrap(), None);
     }
+
+    #[test]
+    fn node_watch_retains_all_seven_ready_frames_and_restores_blocking_reads() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let mut peers = Vec::new();
+        let mut streams = Vec::new();
+        for _ in 1..8 {
+            peers.push(TcpStream::connect(listener.local_addr().unwrap()).unwrap());
+            streams.push(listener.accept().unwrap().0);
+        }
+        let watch = watch_nodes_during_bring_up(&streams).unwrap();
+        for peer in &mut peers {
+            crate::tp_serve::send_serving(peer, &crate::tp_serve::ServingMsg::Ready).unwrap();
+        }
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while !watch.handle.as_ref().unwrap().is_finished() && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let finished = watch.handle.as_ref().unwrap().is_finished();
+        watch.disarm(&streams);
+        assert!(finished, "all seven peers' Ready frames must complete the bring-up watch");
+        for (i, stream) in streams.iter_mut().enumerate() {
+            assert_eq!(stream.read_timeout().unwrap(), None, "rank {}", i + 1);
+            stream.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+            assert!(matches!(crate::tp_serve::recv_serving(stream).unwrap(),
+                crate::tp_serve::ServingMsg::Ready), "rank {}: the watch consumed its Ready frame", i + 1);
+        }
+    }
+
+    /// The watch deliberately exits the whole head on a boot failure, so exercise that path in
+    /// a child test process. Rank seven's error must be attributed to rank seven, not hidden by
+    /// a smaller fixed peer array or consumed before the diagnostic can be printed.
+    #[test]
+    fn node_watch_reports_rank_seven_boot_failure() {
+        const CHILD: &str = "VELO_TEST_RANK_SEVEN_BOOT_FAILURE";
+        const MARKER: &str = "rank-seven-boot-failure-child-entered";
+        // libtest accepts --skip <filter>; a deliberately nonexistent filter also carries
+        // the child-only fixture marker without adding an engine environment variable.
+        if std::env::args().any(|arg| arg == CHILD) {
+            eprintln!("{MARKER}");
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let mut peers = Vec::new();
+            let mut streams = Vec::new();
+            for _ in 1..8 {
+                peers.push(TcpStream::connect(listener.local_addr().unwrap()).unwrap());
+                streams.push(listener.accept().unwrap().0);
+            }
+            for peer in &mut peers[..6] {
+                crate::tp_serve::send_serving(peer, &crate::tp_serve::ServingMsg::Ready).unwrap();
+            }
+            node_report_failure(&mut peers[6], "rank-seven-test-refusal");
+            let _watch = watch_nodes_during_bring_up(&streams).unwrap();
+            std::thread::sleep(Duration::from_secs(3));
+            panic!("the head failed to abort after rank seven refused boot");
+        }
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "cluster::pack_manifest_tests::node_watch_reports_rank_seven_boot_failure",
+                   "--skip", CHILD, "--nocapture"])
+            .output().unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(MARKER), "the selected child test did not run: {stderr}");
+        assert_eq!(output.status.code(), Some(1), "{stderr}");
+        assert!(stderr.contains("FATAL: NODE FAILED — rank 7"), "{stderr}");
+        assert!(stderr.contains("rank-seven-test-refusal"), "{stderr}");
+    }
 }
 
 /// S-B9-CF-AGREE16B (W1, W2): what the head/node build guard covers, and that both ends apply it.
@@ -2156,7 +2280,16 @@ mod build_id_tests {
     /// the target is a lab fixture under `tests/` (absent from a source tree shipped without `tests/`),
     /// and it is deliberately in NO stamp (see build.rs). Adding a pair here is a review decision.
     const CFG_TEST_ONLY_INCLUDES: &[(&str, &str)] =
-        &[("src/loop_detect.rs", "tests/fixtures/loop_detect_vectors.txt")];
+        &[("src/loop_detect.rs", "tests/fixtures/loop_detect_vectors.txt"),
+          ("src/dsv41/config.rs", "tests/fixtures/dsv41_1017_config.json"),
+          ("src/dsv41/engram.rs", "tests/fixtures/dsv41_engram_hash_vectors.json"),
+          ("src/dsv41/engram_math.rs", "tests/fixtures/dsv41_engram_math_vectors.json"),
+          ("src/dsv41/attention_state.rs", "tests/fixtures/dsv41_attention_state_vectors.json"),
+          ("src/dsv41/hc.rs", "tests/fixtures/dsv41_hc_vectors.json"),
+          ("src/dsv41/cache_quant.rs", "tests/fixtures/dsv41_cache_quant_vectors.json"),
+          ("src/dsv41/moe.rs", "tests/fixtures/dsv41_moe_vectors.json"),
+          ("src/dsv41/weights.rs", "tests/fixtures/dsv41_1017_config.json"),
+          ("src/dsv41/numerics.rs", "tests/fixtures/dsv41_numerics_vectors.json")];
 
     fn root() -> PathBuf { PathBuf::from(env!("CARGO_MANIFEST_DIR")) }
     fn hashed() -> BTreeSet<&'static str> { env!("SOURCE_BUILD_FILES").split(';').collect() }
@@ -2265,6 +2398,16 @@ mod build_id_tests {
                     {
                         assert!(kernel.contains(format!("kernels/{cu}").as_str()),
                                 "{target} is emitted from kernels/{cu}, not in the kernel stamp");
+                        continue;
+                    }
+                    // Experimental1017 components have dedicated kernel/ABI
+                    // stamps and are inputs to the source half of the wire ID.
+                    if let Some((cu, _)) = env!("ISOLATED_PTX_MANIFEST")
+                        .split(';').filter_map(|p| p.split_once(':'))
+                        .find(|&(_, ptx)| format!("src/ptx/{ptx}") == target)
+                    {
+                        assert!(hashed.contains(format!("kernels/{cu}").as_str()),
+                                "isolated {target} source is outside the source stamp");
                         continue;
                     }
                     if !hashed.contains(target.as_str()) && !kernel.contains(target.as_str()) {

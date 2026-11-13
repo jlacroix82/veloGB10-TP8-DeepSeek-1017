@@ -48,8 +48,17 @@ uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 # Content-addressed artifact hashing for --head/--node shard distribution
 sha2 = "0.10"
+# Pinned official V4.1 protocol toolkit, with locally recorded numeric-effort support.
+# The vendored workspace contains only the four pure Rust crates (no image/OpenCV runtime).
+deepseek-recipe = { path = "vendor/deepseek-recipe/deepseek-recipe" }
+deepseek-recipe-core = { path = "vendor/deepseek-recipe/deepseek-recipe-core" }
+deepseek-recipe-encoding = { path = "vendor/deepseek-recipe/deepseek-recipe-encoding" }
+tokenizers_recipe = { package = "tokenizers", version = "=0.23.2", features = ["http"] }
 # npz oracle reader (dsv4_load::read_npz_key) — the G3 probe reads oracle pieces directly.
 zip = "2.2"
+
+# Same locked/default-off JSON Schema implementation as the pinned toolkit.
+jsonschema = { version = "=0.58.6", default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"

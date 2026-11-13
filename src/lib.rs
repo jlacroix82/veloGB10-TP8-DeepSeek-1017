@@ -49,6 +49,7 @@ pub mod mxfp4;
 pub mod exl3;
 pub mod naive; // NAIVE: Naive-N0.5-Flash family (PLAN/NAIVE_N05_PORT.md) — own tree, copies + one-line dispatches
 pub mod shard_plan;
+pub mod tp8;
 pub mod exl3_bench;
 pub mod exl3_forward;
 // TUNE (PLAN/AUTOTUNE_DESIGN.md): tunable registry + frozen table (re-exported as exl3_forward::tune)
@@ -88,6 +89,7 @@ pub mod tp_bench;
 pub mod tp_xport;
 pub mod tp_vpgather;
 pub mod dsv4_load;
+pub mod dsv41;
 pub mod dsv4_cpu;
 pub mod dsv4_moe;
 pub mod dsv4_gpu;

@@ -1,0 +1,2785 @@
+{
+  "schema_version": 1,
+  "revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+  "source_identities": {
+    "inference/kernel.py": "1236c3507019ed176f5dba5e04bcea58867cf654818c6cf138ed4845398c2455",
+    "inference/model.py": "e5decd76fe70fd56ef2f10124d245c6f64fb6a0003cc9068a1d3182a168b8d2d",
+    "inference/convert.py": "035028340479145594a81d6084a8424e57363adf83c0d5983914783d95614d76"
+  },
+  "license": "MIT",
+  "copyright": "Copyright (c) 2023 DeepSeek",
+  "oracle": {
+    "device": "cpu",
+    "torch_version": "2.11.0+cu130",
+    "FP8": "torch.float8_e4m3fn CPUcast",
+    "UE8M0": "torch.float8_e8m0fnu CPUcast/decode",
+    "FP4": "verifiedconvert.py FP4_TABLE+low-even/high-odd nibble order withTorchFP32scale multiplication; noCPUpackedFP4arithmeticrequired",
+    "activation": "Exactsourcegroup32/FP32scale-bitformula reproduced onCPU; originalTileLangGPUkernel NOTexecuted",
+    "rms": "model.pyRMSNorm arithmetic onCPUtorch with explicitnormeps1e-20",
+    "subnormal_mode": "torch.set_flush_denormal(False)"
+  },
+  "activation_cases": [
+    {
+      "name": "four_dynamic_ranges",
+      "rows": 1,
+      "columns": 128,
+      "input_bf16_bits": [
+        17376,
+        50144,
+        16520,
+        16536,
+        49288,
+        49304,
+        0,
+        32768,
+        49472,
+        49456,
+        49440,
+        49424,
+        49408,
+        49376,
+        49344,
+        49312,
+        49280,
+        49216,
+        49152,
+        49024,
+        0,
+        16256,
+        16384,
+        16448,
+        16512,
+        16544,
+        16576,
+        16608,
+        16640,
+        16656,
+        16672,
+        16688,
+        16608,
+        49376,
+        15752,
+        15768,
+        48520,
+        48536,
+        0,
+        32768,
+        48704,
+        48688,
+        48672,
+        48656,
+        48640,
+        48608,
+        48576,
+        48544,
+        48512,
+        48448,
+        48384,
+        48256,
+        0,
+        15488,
+        15616,
+        15680,
+        15744,
+        15776,
+        15808,
+        15840,
+        15872,
+        15888,
+        15904,
+        15920,
+        15328,
+        48096,
+        14472,
+        14488,
+        47240,
+        47256,
+        0,
+        32768,
+        47424,
+        47408,
+        47392,
+        47376,
+        47360,
+        47328,
+        47296,
+        47264,
+        47232,
+        47168,
+        47104,
+        46976,
+        0,
+        14208,
+        14336,
+        14400,
+        14464,
+        14496,
+        14528,
+        14560,
+        14592,
+        14608,
+        14624,
+        14640,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768
+      ],
+      "expected_e4m3_bytes": [
+        126,
+        254,
+        72,
+        74,
+        200,
+        202,
+        0,
+        128,
+        212,
+        211,
+        210,
+        209,
+        208,
+        206,
+        204,
+        202,
+        200,
+        196,
+        192,
+        184,
+        0,
+        56,
+        64,
+        68,
+        72,
+        74,
+        76,
+        78,
+        80,
+        81,
+        82,
+        83,
+        126,
+        254,
+        72,
+        74,
+        200,
+        202,
+        0,
+        128,
+        212,
+        211,
+        210,
+        209,
+        208,
+        206,
+        204,
+        202,
+        200,
+        196,
+        192,
+        184,
+        0,
+        56,
+        64,
+        68,
+        72,
+        74,
+        76,
+        78,
+        80,
+        81,
+        82,
+        83,
+        126,
+        254,
+        72,
+        74,
+        200,
+        202,
+        0,
+        128,
+        212,
+        211,
+        210,
+        209,
+        208,
+        206,
+        204,
+        202,
+        200,
+        196,
+        192,
+        184,
+        0,
+        56,
+        64,
+        68,
+        72,
+        74,
+        76,
+        78,
+        80,
+        81,
+        82,
+        83,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128
+      ],
+      "expected_ue8m0_scale_bytes": [
+        127,
+        121,
+        111,
+        105
+      ],
+      "old_group128_e4m3_bytes": [
+        126,
+        254,
+        72,
+        74,
+        200,
+        202,
+        0,
+        128,
+        212,
+        211,
+        210,
+        209,
+        208,
+        206,
+        204,
+        202,
+        200,
+        196,
+        192,
+        184,
+        0,
+        56,
+        64,
+        68,
+        72,
+        74,
+        76,
+        78,
+        80,
+        81,
+        82,
+        83,
+        78,
+        206,
+        24,
+        26,
+        152,
+        154,
+        0,
+        128,
+        164,
+        163,
+        162,
+        161,
+        160,
+        158,
+        156,
+        154,
+        152,
+        148,
+        144,
+        136,
+        0,
+        8,
+        16,
+        20,
+        24,
+        26,
+        28,
+        30,
+        32,
+        33,
+        34,
+        35,
+        4,
+        132,
+        0,
+        0,
+        128,
+        128,
+        0,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        128,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128
+      ],
+      "old_group128_scale_bytes": [
+        127
+      ],
+      "old_group128_must_differ": true
+    },
+    {
+      "name": "zeros_and_bf16_subnormals",
+      "rows": 2,
+      "columns": 32,
+      "input_bf16_bits": [
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769,
+        0,
+        32768,
+        1,
+        32769
+      ],
+      "expected_e4m3_bytes": [
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128,
+        0,
+        128
+      ],
+      "expected_ue8m0_scale_bytes": [
+        105,
+        105
+      ]
+    },
+    {
+      "name": "scale_floor_and_thresholds",
+      "rows": 1,
+      "columns": 64,
+      "input_bf16_bits": [
+        14546,
+        47314,
+        12844,
+        45612,
+        0,
+        32768,
+        14588,
+        47356,
+        14546,
+        47314,
+        12844,
+        45612,
+        0,
+        32768,
+        14588,
+        47356,
+        14546,
+        47314,
+        12844,
+        45612,
+        0,
+        32768,
+        14588,
+        47356,
+        14546,
+        47314,
+        12844,
+        45612,
+        0,
+        32768,
+        14588,
+        47356,
+        14674,
+        47442,
+        14546,
+        47314,
+        0,
+        32768,
+        13271,
+        46039,
+        14674,
+        47442,
+        14546,
+        47314,
+        0,
+        32768,
+        13271,
+        46039,
+        14674,
+        47442,
+        14546,
+        47314,
+        0,
+        32768,
+        13271,
+        46039,
+        14674,
+        47442,
+        14546,
+        47314,
+        0,
+        32768,
+        13271,
+        46039
+      ],
+      "expected_e4m3_bytes": [
+        117,
+        245,
+        11,
+        139,
+        0,
+        128,
+        120,
+        248,
+        117,
+        245,
+        11,
+        139,
+        0,
+        128,
+        120,
+        248,
+        117,
+        245,
+        11,
+        139,
+        0,
+        128,
+        120,
+        248,
+        117,
+        245,
+        11,
+        139,
+        0,
+        128,
+        120,
+        248,
+        125,
+        253,
+        117,
+        245,
+        0,
+        128,
+        37,
+        165,
+        125,
+        253,
+        117,
+        245,
+        0,
+        128,
+        37,
+        165,
+        125,
+        253,
+        117,
+        245,
+        0,
+        128,
+        37,
+        165,
+        125,
+        253,
+        117,
+        245,
+        0,
+        128,
+        37,
+        165
+      ],
+      "expected_ue8m0_scale_bytes": [
+        106,
+        106
+      ]
+    },
+    {
+      "name": "largest_finite_bf16_group",
+      "rows": 1,
+      "columns": 32,
+      "input_bf16_bits": [
+        32639,
+        65407,
+        32511,
+        65279,
+        16256,
+        49024,
+        0,
+        32768,
+        32639,
+        65407,
+        32511,
+        65279,
+        16256,
+        49024,
+        0,
+        32768,
+        32639,
+        65407,
+        32511,
+        65279,
+        16256,
+        49024,
+        0,
+        32768,
+        32639,
+        65407,
+        32511,
+        65279,
+        16256,
+        49024,
+        0,
+        32768
+      ],
+      "expected_e4m3_bytes": [
+        120,
+        248,
+        112,
+        240,
+        0,
+        128,
+        0,
+        128,
+        120,
+        248,
+        112,
+        240,
+        0,
+        128,
+        0,
+        128,
+        120,
+        248,
+        112,
+        240,
+        0,
+        128,
+        0,
+        128,
+        120,
+        248,
+        112,
+        240,
+        0,
+        128,
+        0,
+        128
+      ],
+      "expected_ue8m0_scale_bytes": [
+        247
+      ]
+    }
+  ],
+  "scalar_e4m3_cast_cases": [
+    {
+      "input_f32_bits": 981467136,
+      "expected_byte": 0
+    },
+    {
+      "input_f32_bits": 3128950784,
+      "expected_byte": 128
+    },
+    {
+      "input_f32_bits": 994050048,
+      "expected_byte": 2
+    },
+    {
+      "input_f32_bits": 3141533696,
+      "expected_byte": 130
+    },
+    {
+      "input_f32_bits": 1000341504,
+      "expected_byte": 2
+    },
+    {
+      "input_f32_bits": 3147825152,
+      "expected_byte": 130
+    },
+    {
+      "input_f32_bits": 1004535808,
+      "expected_byte": 4
+    },
+    {
+      "input_f32_bits": 3152019456,
+      "expected_byte": 132
+    },
+    {
+      "input_f32_bits": 1007681536,
+      "expected_byte": 4
+    },
+    {
+      "input_f32_bits": 3155165184,
+      "expected_byte": 132
+    },
+    {
+      "input_f32_bits": 1009778688,
+      "expected_byte": 6
+    },
+    {
+      "input_f32_bits": 3157262336,
+      "expected_byte": 134
+    },
+    {
+      "input_f32_bits": 1011875840,
+      "expected_byte": 6
+    },
+    {
+      "input_f32_bits": 3159359488,
+      "expected_byte": 134
+    },
+    {
+      "input_f32_bits": 1013972992,
+      "expected_byte": 8
+    },
+    {
+      "input_f32_bits": 3161456640,
+      "expected_byte": 136
+    },
+    {
+      "input_f32_bits": 1015545856,
+      "expected_byte": 8
+    },
+    {
+      "input_f32_bits": 3163029504,
+      "expected_byte": 136
+    },
+    {
+      "input_f32_bits": 1016594432,
+      "expected_byte": 10
+    },
+    {
+      "input_f32_bits": 3164078080,
+      "expected_byte": 138
+    },
+    {
+      "input_f32_bits": 1017643008,
+      "expected_byte": 10
+    },
+    {
+      "input_f32_bits": 3165126656,
+      "expected_byte": 138
+    },
+    {
+      "input_f32_bits": 1018691584,
+      "expected_byte": 12
+    },
+    {
+      "input_f32_bits": 3166175232,
+      "expected_byte": 140
+    },
+    {
+      "input_f32_bits": 1019740160,
+      "expected_byte": 12
+    },
+    {
+      "input_f32_bits": 3167223808,
+      "expected_byte": 140
+    },
+    {
+      "input_f32_bits": 1020788736,
+      "expected_byte": 14
+    },
+    {
+      "input_f32_bits": 3168272384,
+      "expected_byte": 142
+    },
+    {
+      "input_f32_bits": 1021837312,
+      "expected_byte": 14
+    },
+    {
+      "input_f32_bits": 3169320960,
+      "expected_byte": 142
+    },
+    {
+      "input_f32_bits": 1022885888,
+      "expected_byte": 16
+    },
+    {
+      "input_f32_bits": 3170369536,
+      "expected_byte": 144
+    },
+    {
+      "input_f32_bits": 1023934464,
+      "expected_byte": 16
+    },
+    {
+      "input_f32_bits": 3171418112,
+      "expected_byte": 144
+    },
+    {
+      "input_f32_bits": 1024983040,
+      "expected_byte": 18
+    },
+    {
+      "input_f32_bits": 3172466688,
+      "expected_byte": 146
+    },
+    {
+      "input_f32_bits": 1026031616,
+      "expected_byte": 18
+    },
+    {
+      "input_f32_bits": 3173515264,
+      "expected_byte": 146
+    },
+    {
+      "input_f32_bits": 1027080192,
+      "expected_byte": 20
+    },
+    {
+      "input_f32_bits": 3174563840,
+      "expected_byte": 148
+    },
+    {
+      "input_f32_bits": 1028128768,
+      "expected_byte": 20
+    },
+    {
+      "input_f32_bits": 3175612416,
+      "expected_byte": 148
+    },
+    {
+      "input_f32_bits": 1029177344,
+      "expected_byte": 22
+    },
+    {
+      "input_f32_bits": 3176660992,
+      "expected_byte": 150
+    },
+    {
+      "input_f32_bits": 1030225920,
+      "expected_byte": 22
+    },
+    {
+      "input_f32_bits": 3177709568,
+      "expected_byte": 150
+    },
+    {
+      "input_f32_bits": 1031274496,
+      "expected_byte": 24
+    },
+    {
+      "input_f32_bits": 3178758144,
+      "expected_byte": 152
+    },
+    {
+      "input_f32_bits": 1032323072,
+      "expected_byte": 24
+    },
+    {
+      "input_f32_bits": 3179806720,
+      "expected_byte": 152
+    },
+    {
+      "input_f32_bits": 1033371648,
+      "expected_byte": 26
+    },
+    {
+      "input_f32_bits": 3180855296,
+      "expected_byte": 154
+    },
+    {
+      "input_f32_bits": 1034420224,
+      "expected_byte": 26
+    },
+    {
+      "input_f32_bits": 3181903872,
+      "expected_byte": 154
+    },
+    {
+      "input_f32_bits": 1035468800,
+      "expected_byte": 28
+    },
+    {
+      "input_f32_bits": 3182952448,
+      "expected_byte": 156
+    },
+    {
+      "input_f32_bits": 1036517376,
+      "expected_byte": 28
+    },
+    {
+      "input_f32_bits": 3184001024,
+      "expected_byte": 156
+    },
+    {
+      "input_f32_bits": 1037565952,
+      "expected_byte": 30
+    },
+    {
+      "input_f32_bits": 3185049600,
+      "expected_byte": 158
+    },
+    {
+      "input_f32_bits": 1038614528,
+      "expected_byte": 30
+    },
+    {
+      "input_f32_bits": 3186098176,
+      "expected_byte": 158
+    },
+    {
+      "input_f32_bits": 1039663104,
+      "expected_byte": 32
+    },
+    {
+      "input_f32_bits": 3187146752,
+      "expected_byte": 160
+    },
+    {
+      "input_f32_bits": 1040711680,
+      "expected_byte": 32
+    },
+    {
+      "input_f32_bits": 3188195328,
+      "expected_byte": 160
+    },
+    {
+      "input_f32_bits": 1041760256,
+      "expected_byte": 34
+    },
+    {
+      "input_f32_bits": 3189243904,
+      "expected_byte": 162
+    },
+    {
+      "input_f32_bits": 1042808832,
+      "expected_byte": 34
+    },
+    {
+      "input_f32_bits": 3190292480,
+      "expected_byte": 162
+    },
+    {
+      "input_f32_bits": 1043857408,
+      "expected_byte": 36
+    },
+    {
+      "input_f32_bits": 3191341056,
+      "expected_byte": 164
+    },
+    {
+      "input_f32_bits": 1044905984,
+      "expected_byte": 36
+    },
+    {
+      "input_f32_bits": 3192389632,
+      "expected_byte": 164
+    },
+    {
+      "input_f32_bits": 1045954560,
+      "expected_byte": 38
+    },
+    {
+      "input_f32_bits": 3193438208,
+      "expected_byte": 166
+    },
+    {
+      "input_f32_bits": 1047003136,
+      "expected_byte": 38
+    },
+    {
+      "input_f32_bits": 3194486784,
+      "expected_byte": 166
+    },
+    {
+      "input_f32_bits": 1048051712,
+      "expected_byte": 40
+    },
+    {
+      "input_f32_bits": 3195535360,
+      "expected_byte": 168
+    },
+    {
+      "input_f32_bits": 1049100288,
+      "expected_byte": 40
+    },
+    {
+      "input_f32_bits": 3196583936,
+      "expected_byte": 168
+    },
+    {
+      "input_f32_bits": 1050148864,
+      "expected_byte": 42
+    },
+    {
+      "input_f32_bits": 3197632512,
+      "expected_byte": 170
+    },
+    {
+      "input_f32_bits": 1051197440,
+      "expected_byte": 42
+    },
+    {
+      "input_f32_bits": 3198681088,
+      "expected_byte": 170
+    },
+    {
+      "input_f32_bits": 1052246016,
+      "expected_byte": 44
+    },
+    {
+      "input_f32_bits": 3199729664,
+      "expected_byte": 172
+    },
+    {
+      "input_f32_bits": 1053294592,
+      "expected_byte": 44
+    },
+    {
+      "input_f32_bits": 3200778240,
+      "expected_byte": 172
+    },
+    {
+      "input_f32_bits": 1054343168,
+      "expected_byte": 46
+    },
+    {
+      "input_f32_bits": 3201826816,
+      "expected_byte": 174
+    },
+    {
+      "input_f32_bits": 1055391744,
+      "expected_byte": 46
+    },
+    {
+      "input_f32_bits": 3202875392,
+      "expected_byte": 174
+    },
+    {
+      "input_f32_bits": 1056440320,
+      "expected_byte": 48
+    },
+    {
+      "input_f32_bits": 3203923968,
+      "expected_byte": 176
+    },
+    {
+      "input_f32_bits": 1057488896,
+      "expected_byte": 48
+    },
+    {
+      "input_f32_bits": 3204972544,
+      "expected_byte": 176
+    },
+    {
+      "input_f32_bits": 1058537472,
+      "expected_byte": 50
+    },
+    {
+      "input_f32_bits": 3206021120,
+      "expected_byte": 178
+    },
+    {
+      "input_f32_bits": 1059586048,
+      "expected_byte": 50
+    },
+    {
+      "input_f32_bits": 3207069696,
+      "expected_byte": 178
+    },
+    {
+      "input_f32_bits": 1060634624,
+      "expected_byte": 52
+    },
+    {
+      "input_f32_bits": 3208118272,
+      "expected_byte": 180
+    },
+    {
+      "input_f32_bits": 1061683200,
+      "expected_byte": 52
+    },
+    {
+      "input_f32_bits": 3209166848,
+      "expected_byte": 180
+    },
+    {
+      "input_f32_bits": 1062731776,
+      "expected_byte": 54
+    },
+    {
+      "input_f32_bits": 3210215424,
+      "expected_byte": 182
+    },
+    {
+      "input_f32_bits": 1063780352,
+      "expected_byte": 54
+    },
+    {
+      "input_f32_bits": 3211264000,
+      "expected_byte": 182
+    },
+    {
+      "input_f32_bits": 1064828928,
+      "expected_byte": 56
+    },
+    {
+      "input_f32_bits": 3212312576,
+      "expected_byte": 184
+    },
+    {
+      "input_f32_bits": 1065877504,
+      "expected_byte": 56
+    },
+    {
+      "input_f32_bits": 3213361152,
+      "expected_byte": 184
+    },
+    {
+      "input_f32_bits": 1066926080,
+      "expected_byte": 58
+    },
+    {
+      "input_f32_bits": 3214409728,
+      "expected_byte": 186
+    },
+    {
+      "input_f32_bits": 1067974656,
+      "expected_byte": 58
+    },
+    {
+      "input_f32_bits": 3215458304,
+      "expected_byte": 186
+    },
+    {
+      "input_f32_bits": 1069023232,
+      "expected_byte": 60
+    },
+    {
+      "input_f32_bits": 3216506880,
+      "expected_byte": 188
+    },
+    {
+      "input_f32_bits": 1070071808,
+      "expected_byte": 60
+    },
+    {
+      "input_f32_bits": 3217555456,
+      "expected_byte": 188
+    },
+    {
+      "input_f32_bits": 1071120384,
+      "expected_byte": 62
+    },
+    {
+      "input_f32_bits": 3218604032,
+      "expected_byte": 190
+    },
+    {
+      "input_f32_bits": 1072168960,
+      "expected_byte": 62
+    },
+    {
+      "input_f32_bits": 3219652608,
+      "expected_byte": 190
+    },
+    {
+      "input_f32_bits": 1073217536,
+      "expected_byte": 64
+    },
+    {
+      "input_f32_bits": 3220701184,
+      "expected_byte": 192
+    },
+    {
+      "input_f32_bits": 1074266112,
+      "expected_byte": 64
+    },
+    {
+      "input_f32_bits": 3221749760,
+      "expected_byte": 192
+    },
+    {
+      "input_f32_bits": 1075314688,
+      "expected_byte": 66
+    },
+    {
+      "input_f32_bits": 3222798336,
+      "expected_byte": 194
+    },
+    {
+      "input_f32_bits": 1076363264,
+      "expected_byte": 66
+    },
+    {
+      "input_f32_bits": 3223846912,
+      "expected_byte": 194
+    },
+    {
+      "input_f32_bits": 1077411840,
+      "expected_byte": 68
+    },
+    {
+      "input_f32_bits": 3224895488,
+      "expected_byte": 196
+    },
+    {
+      "input_f32_bits": 1078460416,
+      "expected_byte": 68
+    },
+    {
+      "input_f32_bits": 3225944064,
+      "expected_byte": 196
+    },
+    {
+      "input_f32_bits": 1079508992,
+      "expected_byte": 70
+    },
+    {
+      "input_f32_bits": 3226992640,
+      "expected_byte": 198
+    },
+    {
+      "input_f32_bits": 1080557568,
+      "expected_byte": 70
+    },
+    {
+      "input_f32_bits": 3228041216,
+      "expected_byte": 198
+    },
+    {
+      "input_f32_bits": 1081606144,
+      "expected_byte": 72
+    },
+    {
+      "input_f32_bits": 3229089792,
+      "expected_byte": 200
+    },
+    {
+      "input_f32_bits": 1082654720,
+      "expected_byte": 72
+    },
+    {
+      "input_f32_bits": 3230138368,
+      "expected_byte": 200
+    },
+    {
+      "input_f32_bits": 1083703296,
+      "expected_byte": 74
+    },
+    {
+      "input_f32_bits": 3231186944,
+      "expected_byte": 202
+    },
+    {
+      "input_f32_bits": 1084751872,
+      "expected_byte": 74
+    },
+    {
+      "input_f32_bits": 3232235520,
+      "expected_byte": 202
+    },
+    {
+      "input_f32_bits": 1085800448,
+      "expected_byte": 76
+    },
+    {
+      "input_f32_bits": 3233284096,
+      "expected_byte": 204
+    },
+    {
+      "input_f32_bits": 1086849024,
+      "expected_byte": 76
+    },
+    {
+      "input_f32_bits": 3234332672,
+      "expected_byte": 204
+    },
+    {
+      "input_f32_bits": 1087897600,
+      "expected_byte": 78
+    },
+    {
+      "input_f32_bits": 3235381248,
+      "expected_byte": 206
+    },
+    {
+      "input_f32_bits": 1088946176,
+      "expected_byte": 78
+    },
+    {
+      "input_f32_bits": 3236429824,
+      "expected_byte": 206
+    },
+    {
+      "input_f32_bits": 1089994752,
+      "expected_byte": 80
+    },
+    {
+      "input_f32_bits": 3237478400,
+      "expected_byte": 208
+    },
+    {
+      "input_f32_bits": 1091043328,
+      "expected_byte": 80
+    },
+    {
+      "input_f32_bits": 3238526976,
+      "expected_byte": 208
+    },
+    {
+      "input_f32_bits": 1092091904,
+      "expected_byte": 82
+    },
+    {
+      "input_f32_bits": 3239575552,
+      "expected_byte": 210
+    },
+    {
+      "input_f32_bits": 1093140480,
+      "expected_byte": 82
+    },
+    {
+      "input_f32_bits": 3240624128,
+      "expected_byte": 210
+    },
+    {
+      "input_f32_bits": 1094189056,
+      "expected_byte": 84
+    },
+    {
+      "input_f32_bits": 3241672704,
+      "expected_byte": 212
+    },
+    {
+      "input_f32_bits": 1095237632,
+      "expected_byte": 84
+    },
+    {
+      "input_f32_bits": 3242721280,
+      "expected_byte": 212
+    },
+    {
+      "input_f32_bits": 1096286208,
+      "expected_byte": 86
+    },
+    {
+      "input_f32_bits": 3243769856,
+      "expected_byte": 214
+    },
+    {
+      "input_f32_bits": 1097334784,
+      "expected_byte": 86
+    },
+    {
+      "input_f32_bits": 3244818432,
+      "expected_byte": 214
+    },
+    {
+      "input_f32_bits": 1098383360,
+      "expected_byte": 88
+    },
+    {
+      "input_f32_bits": 3245867008,
+      "expected_byte": 216
+    },
+    {
+      "input_f32_bits": 1099431936,
+      "expected_byte": 88
+    },
+    {
+      "input_f32_bits": 3246915584,
+      "expected_byte": 216
+    },
+    {
+      "input_f32_bits": 1100480512,
+      "expected_byte": 90
+    },
+    {
+      "input_f32_bits": 3247964160,
+      "expected_byte": 218
+    },
+    {
+      "input_f32_bits": 1101529088,
+      "expected_byte": 90
+    },
+    {
+      "input_f32_bits": 3249012736,
+      "expected_byte": 218
+    },
+    {
+      "input_f32_bits": 1102577664,
+      "expected_byte": 92
+    },
+    {
+      "input_f32_bits": 3250061312,
+      "expected_byte": 220
+    },
+    {
+      "input_f32_bits": 1103626240,
+      "expected_byte": 92
+    },
+    {
+      "input_f32_bits": 3251109888,
+      "expected_byte": 220
+    },
+    {
+      "input_f32_bits": 1104674816,
+      "expected_byte": 94
+    },
+    {
+      "input_f32_bits": 3252158464,
+      "expected_byte": 222
+    },
+    {
+      "input_f32_bits": 1105723392,
+      "expected_byte": 94
+    },
+    {
+      "input_f32_bits": 3253207040,
+      "expected_byte": 222
+    },
+    {
+      "input_f32_bits": 1106771968,
+      "expected_byte": 96
+    },
+    {
+      "input_f32_bits": 3254255616,
+      "expected_byte": 224
+    },
+    {
+      "input_f32_bits": 1107820544,
+      "expected_byte": 96
+    },
+    {
+      "input_f32_bits": 3255304192,
+      "expected_byte": 224
+    },
+    {
+      "input_f32_bits": 1108869120,
+      "expected_byte": 98
+    },
+    {
+      "input_f32_bits": 3256352768,
+      "expected_byte": 226
+    },
+    {
+      "input_f32_bits": 1109917696,
+      "expected_byte": 98
+    },
+    {
+      "input_f32_bits": 3257401344,
+      "expected_byte": 226
+    },
+    {
+      "input_f32_bits": 1110966272,
+      "expected_byte": 100
+    },
+    {
+      "input_f32_bits": 3258449920,
+      "expected_byte": 228
+    },
+    {
+      "input_f32_bits": 1112014848,
+      "expected_byte": 100
+    },
+    {
+      "input_f32_bits": 3259498496,
+      "expected_byte": 228
+    },
+    {
+      "input_f32_bits": 1113063424,
+      "expected_byte": 102
+    },
+    {
+      "input_f32_bits": 3260547072,
+      "expected_byte": 230
+    },
+    {
+      "input_f32_bits": 1114112000,
+      "expected_byte": 102
+    },
+    {
+      "input_f32_bits": 3261595648,
+      "expected_byte": 230
+    },
+    {
+      "input_f32_bits": 1115160576,
+      "expected_byte": 104
+    },
+    {
+      "input_f32_bits": 3262644224,
+      "expected_byte": 232
+    },
+    {
+      "input_f32_bits": 1116209152,
+      "expected_byte": 104
+    },
+    {
+      "input_f32_bits": 3263692800,
+      "expected_byte": 232
+    },
+    {
+      "input_f32_bits": 1117257728,
+      "expected_byte": 106
+    },
+    {
+      "input_f32_bits": 3264741376,
+      "expected_byte": 234
+    },
+    {
+      "input_f32_bits": 1118306304,
+      "expected_byte": 106
+    },
+    {
+      "input_f32_bits": 3265789952,
+      "expected_byte": 234
+    },
+    {
+      "input_f32_bits": 1119354880,
+      "expected_byte": 108
+    },
+    {
+      "input_f32_bits": 3266838528,
+      "expected_byte": 236
+    },
+    {
+      "input_f32_bits": 1120403456,
+      "expected_byte": 108
+    },
+    {
+      "input_f32_bits": 3267887104,
+      "expected_byte": 236
+    },
+    {
+      "input_f32_bits": 1121452032,
+      "expected_byte": 110
+    },
+    {
+      "input_f32_bits": 3268935680,
+      "expected_byte": 238
+    },
+    {
+      "input_f32_bits": 1122500608,
+      "expected_byte": 110
+    },
+    {
+      "input_f32_bits": 3269984256,
+      "expected_byte": 238
+    },
+    {
+      "input_f32_bits": 1123549184,
+      "expected_byte": 112
+    },
+    {
+      "input_f32_bits": 3271032832,
+      "expected_byte": 240
+    },
+    {
+      "input_f32_bits": 1124597760,
+      "expected_byte": 112
+    },
+    {
+      "input_f32_bits": 3272081408,
+      "expected_byte": 240
+    },
+    {
+      "input_f32_bits": 1125646336,
+      "expected_byte": 114
+    },
+    {
+      "input_f32_bits": 3273129984,
+      "expected_byte": 242
+    },
+    {
+      "input_f32_bits": 1126694912,
+      "expected_byte": 114
+    },
+    {
+      "input_f32_bits": 3274178560,
+      "expected_byte": 242
+    },
+    {
+      "input_f32_bits": 1127743488,
+      "expected_byte": 116
+    },
+    {
+      "input_f32_bits": 3275227136,
+      "expected_byte": 244
+    },
+    {
+      "input_f32_bits": 1128792064,
+      "expected_byte": 116
+    },
+    {
+      "input_f32_bits": 3276275712,
+      "expected_byte": 244
+    },
+    {
+      "input_f32_bits": 1129840640,
+      "expected_byte": 118
+    },
+    {
+      "input_f32_bits": 3277324288,
+      "expected_byte": 246
+    },
+    {
+      "input_f32_bits": 1130889216,
+      "expected_byte": 118
+    },
+    {
+      "input_f32_bits": 3278372864,
+      "expected_byte": 246
+    },
+    {
+      "input_f32_bits": 1131937792,
+      "expected_byte": 120
+    },
+    {
+      "input_f32_bits": 3279421440,
+      "expected_byte": 248
+    },
+    {
+      "input_f32_bits": 1132986368,
+      "expected_byte": 120
+    },
+    {
+      "input_f32_bits": 3280470016,
+      "expected_byte": 248
+    },
+    {
+      "input_f32_bits": 1134034944,
+      "expected_byte": 122
+    },
+    {
+      "input_f32_bits": 3281518592,
+      "expected_byte": 250
+    },
+    {
+      "input_f32_bits": 1135083520,
+      "expected_byte": 122
+    },
+    {
+      "input_f32_bits": 3282567168,
+      "expected_byte": 250
+    },
+    {
+      "input_f32_bits": 1136132096,
+      "expected_byte": 124
+    },
+    {
+      "input_f32_bits": 3283615744,
+      "expected_byte": 252
+    },
+    {
+      "input_f32_bits": 1137180672,
+      "expected_byte": 124
+    },
+    {
+      "input_f32_bits": 3284664320,
+      "expected_byte": 252
+    },
+    {
+      "input_f32_bits": 1138229248,
+      "expected_byte": 126
+    },
+    {
+      "input_f32_bits": 3285712896,
+      "expected_byte": 254
+    },
+    {
+      "input_f32_bits": 0,
+      "expected_byte": 0
+    },
+    {
+      "input_f32_bits": 2147483648,
+      "expected_byte": 128
+    },
+    {
+      "input_f32_bits": 1138753536,
+      "expected_byte": 126
+    },
+    {
+      "input_f32_bits": 3286237184,
+      "expected_byte": 254
+    },
+    {
+      "input_f32_bits": 1138786304,
+      "expected_byte": 126
+    },
+    {
+      "input_f32_bits": 3286269952,
+      "expected_byte": 254
+    },
+    {
+      "input_f32_bits": 1343554297,
+      "expected_byte": 126
+    },
+    {
+      "input_f32_bits": 3491037945,
+      "expected_byte": 254
+    },
+    {
+      "input_f32_bits": 1,
+      "expected_byte": 0
+    },
+    {
+      "input_f32_bits": 2147483649,
+      "expected_byte": 128
+    }
+  ],
+  "ue8m0_decode_cases": [
+    {
+      "byte": 0,
+      "expected_f32_bits": 4194304
+    },
+    {
+      "byte": 1,
+      "expected_f32_bits": 8388608
+    },
+    {
+      "byte": 2,
+      "expected_f32_bits": 16777216
+    },
+    {
+      "byte": 100,
+      "expected_f32_bits": 838860800
+    },
+    {
+      "byte": 105,
+      "expected_f32_bits": 880803840
+    },
+    {
+      "byte": 126,
+      "expected_f32_bits": 1056964608
+    },
+    {
+      "byte": 127,
+      "expected_f32_bits": 1065353216
+    },
+    {
+      "byte": 128,
+      "expected_f32_bits": 1073741824
+    },
+    {
+      "byte": 200,
+      "expected_f32_bits": 1677721600
+    },
+    {
+      "byte": 250,
+      "expected_f32_bits": 2097152000
+    },
+    {
+      "byte": 254,
+      "expected_f32_bits": 2130706432
+    }
+  ],
+  "native_fp4_cases": [
+    {
+      "name": "ordinary",
+      "rows": 2,
+      "columns": 64,
+      "packed_bytes": [
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254
+      ],
+      "ue8m0_scale_bytes": [
+        127,
+        125,
+        129,
+        123
+      ],
+      "expected_f32_bits": [
+        0,
+        1056964608,
+        1065353216,
+        1069547520,
+        1073741824,
+        1077936128,
+        1082130432,
+        1086324736,
+        0,
+        3204448256,
+        3212836864,
+        3217031168,
+        3221225472,
+        3225419776,
+        3229614080,
+        3233808384,
+        0,
+        1056964608,
+        1065353216,
+        1069547520,
+        1073741824,
+        1077936128,
+        1082130432,
+        1086324736,
+        0,
+        3204448256,
+        3212836864,
+        3217031168,
+        3221225472,
+        3225419776,
+        3229614080,
+        3233808384,
+        0,
+        1040187392,
+        1048576000,
+        1052770304,
+        1056964608,
+        1061158912,
+        1065353216,
+        1069547520,
+        0,
+        3187671040,
+        3196059648,
+        3200253952,
+        3204448256,
+        3208642560,
+        3212836864,
+        3217031168,
+        0,
+        1040187392,
+        1048576000,
+        1052770304,
+        1056964608,
+        1061158912,
+        1065353216,
+        1069547520,
+        0,
+        3187671040,
+        3196059648,
+        3200253952,
+        3204448256,
+        3208642560,
+        3212836864,
+        3217031168,
+        0,
+        1073741824,
+        1082130432,
+        1086324736,
+        1090519040,
+        1094713344,
+        1098907648,
+        1103101952,
+        0,
+        3221225472,
+        3229614080,
+        3233808384,
+        3238002688,
+        3242196992,
+        3246391296,
+        3250585600,
+        0,
+        1073741824,
+        1082130432,
+        1086324736,
+        1090519040,
+        1094713344,
+        1098907648,
+        1103101952,
+        0,
+        3221225472,
+        3229614080,
+        3233808384,
+        3238002688,
+        3242196992,
+        3246391296,
+        3250585600,
+        0,
+        1023410176,
+        1031798784,
+        1035993088,
+        1040187392,
+        1044381696,
+        1048576000,
+        1052770304,
+        0,
+        3170893824,
+        3179282432,
+        3183476736,
+        3187671040,
+        3191865344,
+        3196059648,
+        3200253952,
+        0,
+        1023410176,
+        1031798784,
+        1035993088,
+        1040187392,
+        1044381696,
+        1048576000,
+        1052770304,
+        0,
+        3170893824,
+        3179282432,
+        3183476736,
+        3187671040,
+        3191865344,
+        3196059648,
+        3200253952
+      ]
+    },
+    {
+      "name": "subnormal_scale",
+      "rows": 2,
+      "columns": 32,
+      "packed_bytes": [
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254
+      ],
+      "ue8m0_scale_bytes": [
+        0,
+        1
+      ],
+      "expected_f32_bits": [
+        0,
+        2097152,
+        4194304,
+        6291456,
+        8388608,
+        12582912,
+        16777216,
+        20971520,
+        0,
+        2149580800,
+        2151677952,
+        2153775104,
+        2155872256,
+        2160066560,
+        2164260864,
+        2168455168,
+        0,
+        2097152,
+        4194304,
+        6291456,
+        8388608,
+        12582912,
+        16777216,
+        20971520,
+        0,
+        2149580800,
+        2151677952,
+        2153775104,
+        2155872256,
+        2160066560,
+        2164260864,
+        2168455168,
+        0,
+        4194304,
+        8388608,
+        12582912,
+        16777216,
+        20971520,
+        25165824,
+        29360128,
+        0,
+        2151677952,
+        2155872256,
+        2160066560,
+        2164260864,
+        2168455168,
+        2172649472,
+        2176843776,
+        0,
+        4194304,
+        8388608,
+        12582912,
+        16777216,
+        20971520,
+        25165824,
+        29360128,
+        0,
+        2151677952,
+        2155872256,
+        2160066560,
+        2164260864,
+        2168455168,
+        2172649472,
+        2176843776
+      ]
+    },
+    {
+      "name": "large_safe_scale",
+      "rows": 1,
+      "columns": 32,
+      "packed_bytes": [
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254,
+        16,
+        50,
+        84,
+        118,
+        152,
+        186,
+        220,
+        254
+      ],
+      "ue8m0_scale_bytes": [
+        250
+      ],
+      "expected_f32_bits": [
+        0,
+        2088763392,
+        2097152000,
+        2101346304,
+        2105540608,
+        2109734912,
+        2113929216,
+        2118123520,
+        0,
+        4236247040,
+        4244635648,
+        4248829952,
+        4253024256,
+        4257218560,
+        4261412864,
+        4265607168,
+        0,
+        2088763392,
+        2097152000,
+        2101346304,
+        2105540608,
+        2109734912,
+        2113929216,
+        2118123520,
+        0,
+        4236247040,
+        4244635648,
+        4248829952,
+        4253024256,
+        4257218560,
+        4261412864,
+        4265607168
+      ]
+    }
+  ],
+  "rms_cases": [
+    {
+      "name": "tiny_signal",
+      "rows": 2,
+      "columns": 32,
+      "input_bf16_bits": [
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0,
+        11996,
+        44764,
+        0,
+        0
+      ],
+      "weight_f32_bits": [
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216,
+        1065353216,
+        1056964608,
+        1073741824,
+        1065353216
+      ],
+      "expected_bf16_bits": [
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0,
+        16209,
+        48849,
+        0,
+        0
+      ],
+      "old_eps1e6_bf16_bits": [
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0,
+        13271,
+        45911,
+        0,
+        0
+      ],
+      "old_eps_must_differ": true
+    },
+    {
+      "name": "ordinary_powers",
+      "rows": 1,
+      "columns": 32,
+      "input_bf16_bits": [
+        49280,
+        49152,
+        49024,
+        0,
+        16256,
+        16384,
+        16512,
+        0,
+        49280,
+        49152,
+        49024,
+        0,
+        16256,
+        16384,
+        16512,
+        0,
+        49280,
+        49152,
+        49024,
+        0,
+        16256,
+        16384,
+        16512,
+        0,
+        49280,
+        49152,
+        49024,
+        0,
+        16256,
+        16384,
+        16512,
+        0
+      ],
+      "weight_f32_bits": [
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216,
+        1065353216,
+        1073741824,
+        1056964608,
+        1065353216
+      ],
+      "expected_bf16_bits": [
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0,
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0,
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0,
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0
+      ],
+      "old_eps1e6_bf16_bits": [
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0,
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0,
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0,
+        49119,
+        49119,
+        48735,
+        0,
+        16095,
+        16351,
+        16223,
+        0
+      ],
+      "old_eps_must_differ": false
+    },
+    {
+      "name": "all_zero",
+      "rows": 1,
+      "columns": 32,
+      "input_bf16_bits": [
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768
+      ],
+      "weight_f32_bits": [
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216,
+        1065353216
+      ],
+      "expected_bf16_bits": [
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768
+      ],
+      "old_eps1e6_bf16_bits": [
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768,
+        0,
+        32768
+      ],
+      "old_eps_must_differ": false
+    }
+  ],
+  "scope": "CPUreferenceonly. No checkpointpayload, weightrequantization, GPUkernel or servingqualification."
+}

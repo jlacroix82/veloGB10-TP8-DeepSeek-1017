@@ -23,6 +23,7 @@ fn main() {
     println!("cargo:rustc-link-lib=cudart");
 
     let cuda_home = std::env::var("CUDA_HOME").unwrap_or_else(|_| "/usr/local/cuda".to_string());
+    println!("cargo:rerun-if-env-changed=CUDA_HOME");
     println!("cargo:include={}/include", cuda_home);
 
     // ---- TP=2 comm transport shim (native/net_shim.c): flat C ABI over libibverbs + cudaHostAlloc ----
@@ -77,6 +78,32 @@ fn main() {
         // NAIVE S8: the DSpark drafter round (plain f16 weights, small-M mma GEMM, Markov + confidence);
         // loaded by src/naive/drafter_gpu.rs only.
         ("gpu_naive_draft.cu", "gpu_naive_draft.ptx", "sm_121"),
+    ];
+    // New1017 components have independent identities. Adding one must not
+    // restamp/recompile different bytes into the already qualified old kernels.
+    let isolated = [
+        ("dsv41_batch_compression.cu", "dsv41_batch_compression.ptx", "DSV41_BATCH_COMPRESSION_SOURCE_ID", false),
+        ("dsv41_batch_layout.cu", "dsv41_batch_layout.ptx", "DSV41_BATCH_LAYOUT_SOURCE_ID", false),
+        ("dsv41_batch_attention.cu", "dsv41_batch_attention.ptx", "DSV41_BATCH_ATTENTION_SOURCE_ID", false),
+        ("dsv41_numerics.cu", "dsv41_numerics.ptx", "DSV41_NUMERICS_SOURCE_ID", false),
+        ("gpu_dsv41_engram.cu", "gpu_dsv41_engram.ptx", "DSV41_ENGRAM_SOURCE_ID", false),
+        ("gpu_dsv41_collectives.cu", "gpu_dsv41_collectives.ptx", "DSV41_COLLECTIVES_SOURCE_ID", true),
+        ("dsv41_gemm.cu", "dsv41_gemm.ptx", "DSV41_GEMM_SOURCE_ID", false),
+        ("dsv41_hc.cu", "dsv41_hc.ptx", "DSV41_HC_SOURCE_ID", false),
+        ("dsv41_dense.cu", "dsv41_dense.ptx", "DSV41_DENSE_SOURCE_ID", false),
+        ("dsv41_moe.cu", "dsv41_moe.ptx", "DSV41_MOE_SOURCE_ID", false),
+        ("dsv41_cache_quant.cu", "dsv41_cache_quant.ptx", "DSV41_CACHE_QUANT_SOURCE_ID", false),
+        ("dsv41_attention.cu", "dsv41_attention.ptx", "DSV41_ATTENTION_SOURCE_ID", false),
+        ("dsv41_position.cu", "dsv41_position.ptx", "DSV41_POSITION_SOURCE_ID", false),
+        ("dsv41_compression.cu", "dsv41_compression.ptx", "DSV41_COMPRESSION_SOURCE_ID", false),
+        ("dsv41_experts.cu", "dsv41_experts.ptx", "DSV41_EXPERTS_SOURCE_ID", false),
+        ("dsv41_kv_store.cu", "dsv41_kv_store.ptx", "DSV41_KV_STORE_SOURCE_ID", false),
+        ("dsv41_text.cu", "dsv41_text.ptx", "DSV41_TEXT_SOURCE_ID", false),
+        ("dsv41_text_batch.cu", "dsv41_text_batch.ptx", "DSV41_TEXT_BATCH_SOURCE_ID", false),
+        ("dsv41_index_select.cu", "dsv41_index_select.ptx", "DSV41_INDEX_SELECT_SOURCE_ID", false),
+        ("dsv41_chunk_store.cu", "dsv41_chunk_store.ptx", "DSV41_CHUNK_STORE_SOURCE_ID", false),
+        ("dsv41_bf16_collectives.cu", "dsv41_bf16_collectives.ptx", "DSV41_BF16_COLLECTIVES_SOURCE_ID", true),
+        ("dsv41_tool_constraint.cu", "dsv41_tool_constraint.ptx", "DSV41_TOOL_CONSTRAINT_SOURCE_ID", false),
     ];
 
     for (src_name, _, _) in &kernels {
@@ -212,6 +239,39 @@ fn main() {
     for f in ["native/net_shim.c", "Cargo.lock", "Cargo.toml", "build.rs"] {
         src_files.push(f.to_string());
     }
+    // These verified diagnostic/reference coefficients are explicitly compiled
+    // into modules, so their bytes belong to the binary's source identity too.
+    for f in ["tests/fixtures/dsv41_batch_prefill_layout_vectors.json",
+              "tests/fixtures/dsv41_model_session_plan_vectors.json",
+              "tests/fixtures/dsv41_source_decode_indices.json",
+              "tests/fixtures/dsv41_moe_cuda_reference.json",
+              "tests/fixtures/dsv41_1017_config.json",
+              "tests/fixtures/dsv41_frequency_backends.json",
+              "tests/fixtures/dsv41_chunk_compression_vectors.json",
+              "tests/fixtures/dsv41_position_vectors.json",
+              "tests/fixtures/dsv41_position_basic_vectors.json",
+              "tests/fixtures/dsv41_compression_vectors.json",
+              "tests/fixtures/dsv41_experts_vectors.json",
+              "tests/fixtures/dsv41_position_cuda_reference.json",
+              "tests/fixtures/dsv41_kv_store_vectors.json"] {
+        src_files.push(f.to_string());
+    }
+    for (source, _, _, _) in &isolated { src_files.push(format!("kernels/{source}")); }
+    // Path dependencies contain local protocol patches. Cargo.lock alone does
+    // not identify their source bytes, so cover every source/template/manifest.
+    let mut vendor_stack = vec![PathBuf::from("vendor/deepseek-recipe")];
+    while let Some(dir) = vendor_stack.pop() {
+        src_dirs.push(dir.to_string_lossy().replace('\\', "/"));
+        for entry in std::fs::read_dir(&dir).expect("read vendored recipe").map(|e| e.expect("vendor entry")) {
+            let path = entry.path();
+            if path.is_dir() {
+                assert!(path.file_name().unwrap() != "target", "vendored build outputs must live outside source tree");
+                vendor_stack.push(path);
+            } else if path.is_file() && matches!(path.extension().and_then(|e| e.to_str()), Some("rs" | "toml" | "json")) {
+                src_files.push(path.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
     // NOT in the stamp: tests/fixtures/loop_detect_vectors.txt (included by src/loop_detect.rs inside
     // `#[cfg(test)]`). It is not an engine input, and a stamp that hashed it "when present" gave one tree
     // two tokens depending on build history (with / without tests/); the include-target test
@@ -252,6 +312,48 @@ fn main() {
     let mut manifest: Vec<String> = kernels.iter().map(|(s, d, _)| format!("{s}:{d}")).collect();
     manifest.push(String::from("gpu_batch.cu:gpu_batch_b3.ptx")); // -DTQ_B3 variant of the first entry
     println!("cargo:rustc-env=EMBEDDED_PTX_MANIFEST={}", manifest.join(";"));
+    println!("cargo:rustc-env=ISOLATED_PTX_MANIFEST={}", isolated.iter()
+        .map(|(src,dst,_,_)|format!("{src}:{dst}")).collect::<Vec<_>>().join(";"));
+
+    // Every component stamp covers its exact source, relevant wire header and
+    // numerical compiler flags. Stable FNV1a64 is specified independently of
+    // Rust's hasher/toolchain. Kernel loaders check the dedicated stamp + ABI.
+    let mut isolated_ids = std::collections::BTreeMap::<&str,String>::new();
+    for (source, target, variable, wire_header) in &isolated {
+        let flags = ["--gpu-architecture=sm_121", "--ptx", "--default-stream=per-thread",
+            "-O3", "-Inative", "--ftz=false", "--fmad=false"];
+        let mut hash=0xcbf2_9ce4_8422_2325u64;
+        let mut feed=|bytes:&[u8]| { for &b in bytes { hash^=b as u64; hash=hash.wrapping_mul(0x0000_0100_0000_01b3); } };
+        let mut dependencies=vec![format!("kernels/{source}")];
+        if *wire_header { dependencies.push("native/tp_doorbell.h".to_string()); }
+        if *source=="dsv41_experts.cu" {
+            dependencies.extend(["kernels/dsv41_gemm.cu", "kernels/dsv41_numerics.cu", "kernels/dsv41_moe.cu"].map(String::from));
+        }
+        for name in dependencies {
+            println!("cargo:rerun-if-changed={name}");
+            let bytes=std::fs::read(&name).unwrap_or_else(|e|panic!("read isolated source {name}: {e}"));
+            feed(name.as_bytes()); feed(&(bytes.len() as u64).to_le_bytes()); feed(&bytes);
+        }
+        for flag in flags { feed(flag.as_bytes()); feed(&[0]); }
+        let identity=format!("{hash:016x}");
+        println!("cargo:rustc-env={variable}={identity}");
+        let destination=out_dir.join(target);
+        if nvcc.exists() {
+            let mut compiler=Command::new(&nvcc);
+            compiler.args(flags).arg(format!("-D{variable}=0x{identity}ULL"));
+            if *source=="dsv41_experts.cu" {
+                let gemm_id=isolated_ids.get("DSV41_GEMM_SOURCE_ID").expect("GEMM source identity must precede dependent experts");
+                compiler.arg(format!("-DDSV41_GEMM_SOURCE_ID=0x{gemm_id}ULL"));
+            }
+            let output=compiler.arg("-o").arg(&destination).arg(kernel_dir.join(source)).output()
+                .unwrap_or_else(|e|panic!("compile isolated {source}: {e}"));
+            assert!(output.status.success(), "nvcc failed on isolated {source}; refusing stale PTX:\n{}",
+                String::from_utf8_lossy(&output.stderr));
+        } else {
+            assert!(destination.is_file(), "missing isolated PTX {}; compile with real CUDA first", destination.display());
+        }
+        isolated_ids.insert(variable,identity);
+    }
 
     if !nvcc.exists() {
         // No nvcc: the only buildable path is off the src/ptx/*.ptx a PREVIOUS build left in the

@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-13",
+  "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+  "model_revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+  "gpu_count": 8,
+  "clock_cap_GHz": {
+    "cpu": 2.0,
+    "gpu": 2.0
+  },
+  "driver": "580.178.04",
+  "cuda_toolkit": "13.0.88",
+  "kernel": "7.0.0-1024-nvidia",
+  "native_input_tokens_per_speed_lane": 75,
+  "native_output_allowance_per_speed_lane": 32,
+  "timed_repeats_per_cell": 2,
+  "throughput_definition": "Sum of native output tokens across a buffered wave divided by full client wall time, including prefill.",
+  "quality_scope": "Two naturally completed Python fixes and one stateful counter tool fixture. Not a full coding or tool pilot.",
+  "timing_file_sha256": "c3bf100c00a96045d6c9aa9d5a36854dbe546793fee1ab2d9a0a23c4b3c0fdf1",
+  "comparisons": [
+    {
+      "experiment": "scratch",
+      "source_commit_tested": "1134dd62c9135e34ebb7d80486560e812aba0bb4",
+      "binary_sha256_tested": "ed00f445ecd334a265d3da87af64b4e9c780dae158eaca6e7f25a31e22b62b5f",
+      "comparison_receipt_sha256": "633d259b39a2cb956ec3bbaecd76f690b454146db346ad6d4140eae0ee22e21c",
+      "request_outputs_and_fixture_effects_matched": true,
+      "strict_request_errors": 0,
+      "strict_whole_window_passed": false,
+      "post_request_adaptive_retransmits": {
+        "off": 0,
+        "reuse": 1
+      },
+      "max_gpu_C": 50.0,
+      "max_board_C": 52.2,
+      "min_available_memory_GiB": 33.57790756225586,
+      "retained_scratch_bytes_per_rank": 8405952,
+      "checked_buffer_borrows_per_rank": 104280
+    },
+    {
+      "experiment": "cuda-graph",
+      "source_commit_tested": "834035b6c66fec49ca275399c313676a55adb3c6",
+      "binary_sha256_tested": "830d9bef68fdd24ba70e07cb8286c3238d381c7c3b30ac68be89665ca7e2d0e0",
+      "comparison_receipt_sha256": "d26281b70cb68647acd064c5ed04113a07cb9a8f803c786b2a82de547cdc6652",
+      "request_outputs_and_fixture_effects_matched": true,
+      "strict_request_errors": 0,
+      "strict_whole_window_passed": false,
+      "post_request_adaptive_retransmits": {
+        "graph-off": 2,
+        "graph-on": 0
+      },
+      "max_gpu_C": 50.0,
+      "max_board_C": 52.5,
+      "min_available_memory_GiB": 33.78449249267578,
+      "captured_widths_on_every_rank": [
+        1,
+        2,
+        8,
+        16
+      ],
+      "device_oracle_compared_values": 403104
+    }
+  ]
+}

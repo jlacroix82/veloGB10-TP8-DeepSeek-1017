@@ -42,6 +42,7 @@ ALL OPTIONS (the complete accepted set; the day-to-day launch subset: --help)
     --ep-deal <interleave|contig|freq> EXL3 TP static expert deal; freq = committed per-layer frequency-balanced table (world 2 and world 4; opt-in, output-changing)  [interleave]
     --exl3-tp-fastctl <on|off>         EXL3 TP fast control plane  [on]
     --exl3-tp-preverify <on|off>       EXL3 TP pre-verify agree  [on]
+    --experimental-tp8                 acknowledge unqualified eight-rank dense-Qwen bring-up; requires plain eager FP32 decoding and bf16 KV  [off]
     --gid-idx <N>                      RoCE GID index for the TP data plane (integer N, or omit for auto-detect). Auto-detect picks the first IPv4-mapped RoCE v2 GID from sysfs (logged at bring-up with the sysfs evidence); fallback if none found: the static default 3. An explicit N binds EXACTLY index N on EVERY rail (the second rail and the single-stage context use the same resolved index); a wrong N fails loudly at bind — it is never re-scanned  [auto] (per box)
     --naive-lane-ctx <on|off>          Naive --naive-lanes > 1 with speculation (2026-10-21): on (default) = every lane keeps its own drafter context (each shared step feeds every lane's row, ~0.7 ms per extra lane at TP4), so any request left alone speculates; off = one context, fed only by the request admitted into an idle engine (the only one that can speculate)  [on]
     --naive-lanes <N>                  Naive TP=2/TP=4 concurrent requests (G1): 0 (default) = follow --max-batch (owner 2026-10-21), capped at 4; N >= 1 overrides it (1 = one request at a time). Up to N requests share each step (one row each, N KV slots); shared steps do not speculate, a request left alone does  [0]
@@ -393,6 +394,7 @@ ALL OPTIONS (the complete accepted set; the day-to-day launch subset: --help)
     --dspark-round-trace               DSpark round trace  [off]
     --dspark-step-log                  DSpark per-step log  [off]
     --dspark-synth-dir <PATH>          DSpark synthetic-table dir (offline tools)  [built-in]
+    --dsv41-plan                       DeepSeek-1017 metadata/TP ownership plan only; no GPU, tensor payload loading or serving  [off]
     --dump-pfhash                      NVFP4 prefill hash dumps  [off]
     --dump-prompt                      server: dump rendered prompts  [off]
     --dump-tokens                      server: dump tokens  [off]
@@ -489,6 +491,7 @@ ALL OPTIONS (the complete accepted set; the day-to-day launch subset: --help)
     --tp-accept <N>                    TP bench_accept depth (set = run the accept branch)  [unset]
     --tp-agree-drill <N>               test drill, NVFP4 packs, one-sided (per box: it acts on the box whose command line carries it): corrupt THIS rank's agree hash at scheduler step N, once per head session (a resident node supervisor started with this flag re-arms it for every head that connects; the corruption depends on the rank, so a drill armed on two ranks cannot cancel). Inert, with a boot line saying so, on EXL3 packs (use --tp-width-drill) and at TP=1  [unset] (per box)
     --tp-batch-probe <N>               TP batch probe width  [unset]
+    --tp-batch-trace                   NVFP4 TP head: JSON admission and actual plain decode rows (native-ID hashes, no prompt text)  [off]
     --tp-binv-tp                       TP batch-invariance probe (also --probe-binv-tp)  [off]
     --tp-boot-delay <TEXT>             test drill: <rank>:<seconds> sleep before the boot rendezvous  [unset]
     --tp-capture <PATH>                TP debug capture path  [unset]

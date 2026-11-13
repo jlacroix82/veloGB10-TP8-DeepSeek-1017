@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "kind": "native1017_packed_reference_gate_v1",
+  "model_revision": "1bae0e1088993b9b82de08f59de5be5a34e42170",
+  "global_checkpoint_geometry_binding": "da3626bbe7157f8fac1457023c64d571cc2568d2b2e651628a177920d3a1f9b0",
+  "baseline_binary_sha256": "706312cb38309ba83fb5d5b78590e377ba24bb3914be86d1b90f7d59f6eafc3b",
+  "transport_identity": {
+    "helper_source_id": "77f426707f422639",
+    "helper_ptx_sha256": "4766e26b6b73432b225dd4aae810aa16cd0e6e436a95d89614fdea16eb6b8210",
+    "transport_ptx_sha256": "a262a0b3d830920c499c58c120fa350a82391d9cff26eec2b09cdb9314314caf"
+  },
+  "output_tokens_per_lane": 8,
+  "maximum_learned_prefix_tokens": 512,
+  "maximum_flat_rows": 128,
+  "maximum_physical_lanes": 16,
+  "native_EOS_id": 1,
+  "stop_on_actual_generated_EOS": true,
+  "forced_continuation_after_EOS": false,
+  "prefill_policy": "each active member gets min(remaining, floor(128/active_members)); keep case order; remove completed members",
+  "decode_policy": "seven full-width waves; rotate case order left by wave+1, reverse odd wave indices",
+  "prompt_policy": "exact retained native IDs; no rerender or inferred cross-engine thinking equivalence",
+  "timing_is_benchmark": false,
+  "natural_completion_quality": false,
+  "distinct_prompt_corpora": 2,
+  "corpora": {
+    "code": {
+      "prompt_native_ids": [
+        0,
+        128799,
+        77666,
+        288,
+        9504,
+        482,
+        28,
+        223,
+        2402,
+        343,
+        16801,
+        223,
+        19,
+        15,
+        1457,
+        14,
+        270,
+        4077,
+        270,
+        1990,
+        14,
+        270,
+        850,
+        15146,
+        270,
+        22805,
+        868,
+        128803,
+        21750,
+        260,
+        5553,
+        15255,
+        9963,
+        294,
+        411,
+        46360,
+        55,
+        23809,
+        1812,
+        1353,
+        270,
+        5103,
+        11202,
+        16,
+        52480,
+        2613,
+        49439,
+        14,
+        541,
+        10,
+        19,
+        11,
+        1178,
+        305,
+        3065,
+        4836,
+        14,
+        7768,
+        22891,
+        14,
+        305,
+        260,
+        3107,
+        71187,
+        2511,
+        16,
+        28231,
+        270,
+        15599,
+        1561,
+        270,
+        4181,
+        16,
+        128804,
+        128821
+      ],
+      "prompt_native_ids_sha256_u32le": "f5cd9db5cc738c2a8b7eafadd34de50dc3ba70cb18c782d380517ea093975c4b",
+      "expected_output_native_ids": [
+        2581,
+        1309,
+        3287,
+        16,
+        21017,
+        5085,
+        5553,
+        15255
+      ],
+      "expected_output_native_ids_sha256_u32le": "48526c13e3360a3bb335efe6a4e8744fe16a31f3d0fc0e1c08121df91e63c0ed",
+      "reference_summary_sha256": "69f03741da1302f756029b5ba8c21f3ab34420f12e5377a914ab69522f3aa1a3"
+    },
+    "prose": {
+      "prompt_native_ids": [
+        0,
+        128799,
+        77666,
+        288,
+        9504,
+        482,
+        28,
+        223,
+        2402,
+        343,
+        16801,
+        223,
+        19,
+        15,
+        1457,
+        14,
+        270,
+        4077,
+        270,
+        1990,
+        14,
+        270,
+        850,
+        15146,
+        270,
+        22805,
+        868,
+        128803,
+        65106,
+        14,
+        295,
+        19041,
+        10021,
+        46030,
+        14,
+        1192,
+        71350,
+        59524,
+        588,
+        4138,
+        4063,
+        65020,
+        14914,
+        62027,
+        1901,
+        36506,
+        270,
+        4216,
+        2645,
+        734,
+        5238,
+        6380,
+        16,
+        35614,
+        21743,
+        3711,
+        14,
+        31898,
+        2753,
+        14,
+        291,
+        19468,
+        14,
+        305,
+        52636,
+        16,
+        128804,
+        128821
+      ],
+      "prompt_native_ids_sha256_u32le": "c2df86f184dc4c8fb2f1f684315808386ca2d6b65758ef3a51cbd70209ead6e3",
+      "expected_output_native_ids": [
+        2581,
+        1309,
+        3287,
+        16,
+        21017,
+        8470,
+        19041,
+        10021
+      ],
+      "expected_output_native_ids_sha256_u32le": "b785ac4076f14960b30f4bb7ad5211d90e61c24612b0f37068d6ee1a874ceeae",
+      "reference_summary_sha256": "e146d185ab36e4ff4b6a0e0a3897c533bfedace741998d7958c2360245e0d365"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "B1-code",
+      "lanes": 1,
+      "members": [
+        {
+          "request_id": "B1-code-slot7",
+          "slot": 7,
+          "generation": 1,
+          "workload": "code"
+        }
+      ]
+    },
+    {
+      "case_id": "B1-prose",
+      "lanes": 1,
+      "members": [
+        {
+          "request_id": "B1-prose-slot7",
+          "slot": 7,
+          "generation": 2,
+          "workload": "prose"
+        }
+      ]
+    },
+    {
+      "case_id": "B2-mixed",
+      "lanes": 2,
+      "members": [
+        {
+          "request_id": "B2-mixed-slot0",
+          "slot": 0,
+          "generation": 3,
+          "workload": "code"
+        },
+        {
+          "request_id": "B2-mixed-slot7",
+          "slot": 7,
+          "generation": 3,
+          "workload": "prose"
+        }
+      ]
+    },
+    {
+      "case_id": "B4-mixed",
+      "lanes": 4,
+      "members": [
+        {
+          "request_id": "B4-mixed-slot3",
+          "slot": 3,
+          "generation": 4,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B4-mixed-slot15",
+          "slot": 15,
+          "generation": 4,
+          "workload": "code"
+        },
+        {
+          "request_id": "B4-mixed-slot0",
+          "slot": 0,
+          "generation": 4,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B4-mixed-slot7",
+          "slot": 7,
+          "generation": 4,
+          "workload": "code"
+        }
+      ]
+    },
+    {
+      "case_id": "B8-mixed",
+      "lanes": 8,
+      "members": [
+        {
+          "request_id": "B8-mixed-slot5",
+          "slot": 5,
+          "generation": 5,
+          "workload": "code"
+        },
+        {
+          "request_id": "B8-mixed-slot9",
+          "slot": 9,
+          "generation": 5,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B8-mixed-slot1",
+          "slot": 1,
+          "generation": 5,
+          "workload": "code"
+        },
+        {
+          "request_id": "B8-mixed-slot12",
+          "slot": 12,
+          "generation": 5,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B8-mixed-slot3",
+          "slot": 3,
+          "generation": 5,
+          "workload": "code"
+        },
+        {
+          "request_id": "B8-mixed-slot15",
+          "slot": 15,
+          "generation": 5,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B8-mixed-slot0",
+          "slot": 0,
+          "generation": 5,
+          "workload": "code"
+        },
+        {
+          "request_id": "B8-mixed-slot7",
+          "slot": 7,
+          "generation": 5,
+          "workload": "prose"
+        }
+      ]
+    },
+    {
+      "case_id": "B16-mixed",
+      "lanes": 16,
+      "members": [
+        {
+          "request_id": "B16-mixed-slot8",
+          "slot": 8,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot10",
+          "slot": 10,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot6",
+          "slot": 6,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot13",
+          "slot": 13,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot4",
+          "slot": 4,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot11",
+          "slot": 11,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot2",
+          "slot": 2,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot14",
+          "slot": 14,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot5",
+          "slot": 5,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot9",
+          "slot": 9,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot1",
+          "slot": 1,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot12",
+          "slot": 12,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot3",
+          "slot": 3,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot15",
+          "slot": 15,
+          "generation": 6,
+          "workload": "code"
+        },
+        {
+          "request_id": "B16-mixed-slot0",
+          "slot": 0,
+          "generation": 6,
+          "workload": "prose"
+        },
+        {
+          "request_id": "B16-mixed-slot7",
+          "slot": 7,
+          "generation": 6,
+          "workload": "code"
+        }
+      ]
+    }
+  ]
+}

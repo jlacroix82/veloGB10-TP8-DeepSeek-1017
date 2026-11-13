@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "purpose": "Independent canonical packed schedule identity repair; no workload or numerical change",
+  "independent_plan_source_sha256": "ce0862d2226cdb2a3abdf40fcc16e56baef09d5ee1c8ab54ffa668a5024112e5",
+  "helper_source_id": "d4129e941f2e5f73",
+  "helper_ptx_sha256": "8da4644ae5747ba68010a8e4f365f9fc46cae418c5e8055d678881e0ee0861a3",
+  "transport_ptx_sha256": "a262a0b3d830920c499c58c120fa350a82391d9cff26eec2b09cdb9314314caf",
+  "schedules": {
+    "8": {
+      "operations": 5376,
+      "steps": 64,
+      "end_epoch": 24690,
+      "unique_generated_native_tokens": 256,
+      "program_sha256": "78232822391f72e1daa963ed54428c4d8440bfac8509ed92c2110cb30f7a0396",
+      "wire_6u64_le_sha256": "76d0be07c70d3e79f0c49ea5bb2c640a5a6557815541d3007f7d12f9d2e45d27",
+      "previous_identity_program_sha256": "acc5ead6081aa7234a31810c21796a434bfa263dbb482a0096b6945dbef93640"
+    },
+    "32": {
+      "operations": 17472,
+      "steps": 208,
+      "end_epoch": 60978,
+      "unique_generated_native_tokens": 1024,
+      "program_sha256": "3e6763da0554978d1b041e62f332880e5135bc04ac63c3f147fcd0b81db27ef9",
+      "wire_6u64_le_sha256": "898d53f0ce24b7ca734e204259ff8bb33bd47ee4a8861cab3598facb8c6a43d9",
+      "previous_identity_program_sha256": "f56f5d097d0d6c2d4625a57170448d29d89a3f1afe806d3af2ac1282907b476a"
+    }
+  }
+}
